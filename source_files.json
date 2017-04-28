@@ -1,0 +1,7 @@
+[
+	"node_modules/jeefo_core/dist/jeefo_core.build.js",
+	"src/token.js",
+	"src/region.js",
+	"src/string_stream.js",
+	"src/token_parser.js"
+]
