@@ -1,4 +1,4 @@
 #!/bin/bash
 
-node build.js && echo "Build succeed!"
+node build && echo "Build succeed!"
 npm publish . && echo "Successfully published !"
