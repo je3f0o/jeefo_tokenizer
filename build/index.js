@@ -65,11 +65,13 @@ var align = function (str, value) {
 	return `${ str }${ space } : ${ value }`;
 };
 
+var license = `The ${ _package.license } license`;
+
 browser_source = `/**
  * ${ align(_package.name, 'v' + _package.version) }
  * ${ align("Author", _package.author) }
  * ${ align("Homepage", _package.homepage) }
- * ${ align("License", _package.license) }
+ * ${ align("License", license) }
  * ${ align("Copyright", _package.copyright) }
  **/
 ${ browser_source }`;
@@ -87,7 +89,7 @@ console.log(`Browser source: ${ get_filesize(browser_filename) } bytes.`);
 
 // License
 var license_path = path.resolve(__dirname, "../LICENSE");
-var license = `${ _package.license }
+license = `${ license }
 
 Copyright (c) ${ _package.copyright } - ${ _package.name }, ${ _package.homepage }
 
