@@ -1,7 +1,7 @@
 /* -.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.
 * File Name   : region.js
 * Created at  : 2017-04-08
-* Updated at  : 2017-04-20
+* Updated at  : 2017-05-01
 * Author      : jeefo
 * Purpose     :
 * Description :
@@ -17,24 +17,32 @@ var p;
 
 //ignore:end
 
-var RegionDefinition = function (type, name, start, end, skip, contains, ignore) {
-	this.type     = type;
-	this.name     = name;
-	this.start    = start;
-	this.end      = end;
-	this.skip     = skip     || null;
-	this.contains = contains || null;
-	this.ignore   = ignore   || null;
+var RegionDefinition = function (definition) {
+	this.type  = definition.type;
+	this.name  = definition.name;
+	this.start = definition.start;
+	this.end   = definition.end;
 
-	if (contains) {
-		this.contains_chars = this.find_special_characters(contains);
-	}
-	if (ignore) {
-		this.ignore_chars = this.find_special_characters(ignore);
-	}
+	if (definition.skip)      { this.skip      = definition.skip;      }
+	if (definition.until)     { this.until     = definition.until;     }
+	if (definition.ignore)    { this.ignore    = definition.ignore;    }
+	if (definition.keepend)   { this.keepend   = definition.keepend;   }
+	if (definition.contains)  { this.contains  = definition.contains;  }
+	if (definition.contained) { this.contained = definition.contained; }
+
+	if (definition.ignore)   { this.ignore_chars   = this.find_special_characters(definition.ignore);   }
+	if (definition.contains) { this.contains_chars = this.find_special_characters(definition.contains); }
 };
-RegionDefinition.prototype.find_special_characters = function (container) {
-	for (var i = 0, len = container.length; i < len; ++i) {
+p = RegionDefinition.prototype;
+
+p.RegionDefinition = RegionDefinition;
+
+p.copy = function () {
+	return new this.RegionDefinition(this);
+};
+
+p.find_special_characters = function (container) {
+	for (var i = 0; i < container.length; ++i) {
 		if (container[i].type === "SpecialCharacter") {
 			return container[i].chars.join('');
 		}
@@ -42,56 +50,109 @@ RegionDefinition.prototype.find_special_characters = function (container) {
 };
 
 var Region = function (language) {
-	this.language  = language;
-	this.container = [];
+	this.hash                   = {};
+	this.language               = language;
+	this.global_null_regions    = [];
+	this.contained_null_regions = [];
 };
 p = Region.prototype;
 
+p.sort_function = function (a, b) { return a.start.length - b.start.length; };
+
 p.register = function (region) {
-	this.container.push(new RegionDefinition(
-		region.type,
-		region.name,
-		region.start,
-		region.end,
-		region.skip,
-		region.contains,
-		region.ignore
-	));
+	region = new RegionDefinition(region);
+
+	if (region.start) {
+		if (this.hash[region.start[0]]) {
+			this.hash[region.start[0]].push(region);
+
+			this.hash[region.start[0]].sort(this.sort_function);
+		} else {
+			this.hash[region.start[0]] = [region];
+		}
+	} else if (region.contained) {
+		this.contained_null_regions.push(region);
+	} else {
+		if (this.global_null_region) {
+			throw Error("Overwritten global null region.");
+		}
+		this.global_null_region = region;
+	}
 };
 
-p.find = function (streamer) {
-	var container  = this.container,
-		i = 0, i_len = container.length,
-		current_index = streamer.current_index,
-		is_matched, start, j, j_len;
+// Find {{{1
+p.find = function (parent, streamer) {
+	var i         = 0,
+		container = this.hash[streamer.current()],
+		start, j, k;
+	
+	// Has parent {{{2
+	if (parent && parent.contains) {
 
-	for (; i < i_len; ++i) {
-		start = container[i].start;
+		// Search for contained regions {{{3
+		if (container) {
+			CONTAINER:
+			for (i = container.length - 1; i >= 0; --i) {
+				for (j = parent.contains.length - 1; j >= 0; --j) {
+					if (container[i].type !== parent.contains[j].type) {
+						continue;
+					}
 
-		is_matched = true;
+					for (k = 1, start = container[i].start; k < start.length; ++k) {
+						if (streamer.peek(streamer.current_index + k) !== start[k]) {
+							continue CONTAINER;
+						}
+					}
 
-		for (j = 0, j_len = start.length; j < j_len; ++j) {
-			if (streamer.peek(current_index + j) !== start[j]) {
-				is_matched = false;
-				break;
+					return container[i].copy();
+				}
 			}
 		}
 
-		if (is_matched) {
-			return new RegionDefinition(
-				container[i].type,
-				container[i].name,
-				container[i].start,
-				container[i].end,
-				container[i].skip,
-				container[i].contains,
-				container[i].ignore
-			);
+		// Looking for null regions {{{3
+		for (i = parent.contains.length - 1; i >= 0; --i) {
+			for (j = this.contained_null_regions.length - 1; j >= 0; --j) {
+				if (this.contained_null_regions[j].type === parent.contains[i].type) {
+					return this.contained_null_regions[j].copy();
+				}
+			}
 		}
-	}
+		// }}}3
 
-	return null;
+	// No parent {{{2
+	// It means lookup for only global regions
+	} else {
+
+		// Has container {{{3
+		if (container) {
+
+			NO_PARENT_CONTAINER:
+			for (i = container.length - 1; i >= 0; --i) {
+				if (container[i].contained) {
+					continue;
+				}
+
+				for (k = 1, start = container[i].start; k < start.length; ++k) {
+					if (streamer.peek(streamer.current_index + k) !== start[k]) {
+						continue NO_PARENT_CONTAINER;
+					}
+				}
+
+				return container[i].copy();
+			}
+		}
+	
+		// Finally {{{3
+		if (this.global_null_region) {
+			return this.global_null_region.copy();
+		}
+		// }}}3
+
+	}
+	// }}}2
+
 };
+// }}}1
 
 //ignore:start
 module.exports = Region;

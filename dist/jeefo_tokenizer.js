@@ -33,30 +33,38 @@ p.error_unexpected_token = function () {
 /* -.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.
 * File Name   : region.js
 * Created at  : 2017-04-08
-* Updated at  : 2017-04-20
+* Updated at  : 2017-05-01
 * Author      : jeefo
 * Purpose     :
 * Description :
 _._._._._._._._._._._._._._._._._._._._._.*/
 
-var RegionDefinition = function (type, name, start, end, skip, contains, ignore) {
-	this.type     = type;
-	this.name     = name;
-	this.start    = start;
-	this.end      = end;
-	this.skip     = skip     || null;
-	this.contains = contains || null;
-	this.ignore   = ignore   || null;
+var RegionDefinition = function (definition) {
+	this.type  = definition.type;
+	this.name  = definition.name;
+	this.start = definition.start;
+	this.end   = definition.end;
 
-	if (contains) {
-		this.contains_chars = this.find_special_characters(contains);
-	}
-	if (ignore) {
-		this.ignore_chars = this.find_special_characters(ignore);
-	}
+	if (definition.skip)      { this.skip      = definition.skip;      }
+	if (definition.until)     { this.until     = definition.until;     }
+	if (definition.ignore)    { this.ignore    = definition.ignore;    }
+	if (definition.keepend)   { this.keepend   = definition.keepend;   }
+	if (definition.contains)  { this.contains  = definition.contains;  }
+	if (definition.contained) { this.contained = definition.contained; }
+
+	if (definition.ignore)   { this.ignore_chars   = this.find_special_characters(definition.ignore);   }
+	if (definition.contains) { this.contains_chars = this.find_special_characters(definition.contains); }
 };
-RegionDefinition.prototype.find_special_characters = function (container) {
-	for (var i = 0, len = container.length; i < len; ++i) {
+p = RegionDefinition.prototype;
+
+p.RegionDefinition = RegionDefinition;
+
+p.copy = function () {
+	return new this.RegionDefinition(this);
+};
+
+p.find_special_characters = function (container) {
+	for (var i = 0; i < container.length; ++i) {
 		if (container[i].type === "SpecialCharacter") {
 			return container[i].chars.join('');
 		}
@@ -64,56 +72,109 @@ RegionDefinition.prototype.find_special_characters = function (container) {
 };
 
 var Region = function (language) {
-	this.language  = language;
-	this.container = [];
+	this.hash                   = {};
+	this.language               = language;
+	this.global_null_regions    = [];
+	this.contained_null_regions = [];
 };
 p = Region.prototype;
 
+p.sort_function = function (a, b) { return a.start.length - b.start.length; };
+
 p.register = function (region) {
-	this.container.push(new RegionDefinition(
-		region.type,
-		region.name,
-		region.start,
-		region.end,
-		region.skip,
-		region.contains,
-		region.ignore
-	));
+	region = new RegionDefinition(region);
+
+	if (region.start) {
+		if (this.hash[region.start[0]]) {
+			this.hash[region.start[0]].push(region);
+
+			this.hash[region.start[0]].sort(this.sort_function);
+		} else {
+			this.hash[region.start[0]] = [region];
+		}
+	} else if (region.contained) {
+		this.contained_null_regions.push(region);
+	} else {
+		if (this.global_null_region) {
+			throw Error("Overwritten global null region.");
+		}
+		this.global_null_region = region;
+	}
 };
 
-p.find = function (streamer) {
-	var container  = this.container,
-		i = 0, i_len = container.length,
-		current_index = streamer.current_index,
-		is_matched, start, j, j_len;
+// Find {{{1
+p.find = function (parent, streamer) {
+	var i         = 0,
+		container = this.hash[streamer.current()],
+		start, j, k;
+	
+	// Has parent {{{2
+	if (parent && parent.contains) {
 
-	for (; i < i_len; ++i) {
-		start = container[i].start;
+		// Search for contained regions {{{3
+		if (container) {
+			CONTAINER:
+			for (i = container.length - 1; i >= 0; --i) {
+				for (j = parent.contains.length - 1; j >= 0; --j) {
+					if (container[i].type !== parent.contains[j].type) {
+						continue;
+					}
 
-		is_matched = true;
+					for (k = 1, start = container[i].start; k < start.length; ++k) {
+						if (streamer.peek(streamer.current_index + k) !== start[k]) {
+							continue CONTAINER;
+						}
+					}
 
-		for (j = 0, j_len = start.length; j < j_len; ++j) {
-			if (streamer.peek(current_index + j) !== start[j]) {
-				is_matched = false;
-				break;
+					return container[i].copy();
+				}
 			}
 		}
 
-		if (is_matched) {
-			return new RegionDefinition(
-				container[i].type,
-				container[i].name,
-				container[i].start,
-				container[i].end,
-				container[i].skip,
-				container[i].contains,
-				container[i].ignore
-			);
+		// Looking for null regions {{{3
+		for (i = parent.contains.length - 1; i >= 0; --i) {
+			for (j = this.contained_null_regions.length - 1; j >= 0; --j) {
+				if (this.contained_null_regions[j].type === parent.contains[i].type) {
+					return this.contained_null_regions[j].copy();
+				}
+			}
 		}
-	}
+		// }}}3
 
-	return null;
+	// No parent {{{2
+	// It means lookup for only global regions
+	} else {
+
+		// Has container {{{3
+		if (container) {
+
+			NO_PARENT_CONTAINER:
+			for (i = container.length - 1; i >= 0; --i) {
+				if (container[i].contained) {
+					continue;
+				}
+
+				for (k = 1, start = container[i].start; k < start.length; ++k) {
+					if (streamer.peek(streamer.current_index + k) !== start[k]) {
+						continue NO_PARENT_CONTAINER;
+					}
+				}
+
+				return container[i].copy();
+			}
+		}
+	
+		// Finally {{{3
+		if (this.global_null_region) {
+			return this.global_null_region.copy();
+		}
+		// }}}3
+
+	}
+	// }}}2
+
 };
+// }}}1
 
 /* -.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.
 * File Name   : string_stream.js
@@ -149,7 +210,7 @@ p.current = function () {
 /* -.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.
 * File Name   : token_parser.js
 * Created at  : 2017-04-08
-* Updated at  : 2017-04-26
+* Updated at  : 2017-05-01
 * Author      : jeefo
 * Purpose     :
 * Description :
@@ -159,11 +220,14 @@ var TokenParser = function (language, regions) {
 	this.lines  = [{ number : 1, index : 0 }];
 	this.start  = { line : 1, column : 1 };
 	this.tokens = [];
+	this.stack  = [];
 
 	this.regions  = regions;
 	this.language = language;
 };
 p = TokenParser.prototype;
+
+p.is_array = Array.isArray;
 
 // Main parser {{{1
 p.parse = function (source) {
@@ -171,33 +235,48 @@ p.parse = function (source) {
 		current_character = streamer.current(), region;
 
 	while (current_character) {
+		if (this.current_region) {
+			if (this.current_region.ignore_chars && this.current_region.ignore_chars.indexOf(current_character) !== -1) {
+				current_character = streamer.next();
+				continue;
+			} else if (this.region_end(this.current_region)) {
+				this.current_token  = this.current_token.parent;
+				this.current_region = this.current_region.parent;
 
-		// White space {{{3
-		// Хэрвээ хоосон зай бол алгасна.
-        if (current_character <= ' ') {
+				current_character = streamer.next();
+				continue;
+			}
+		}
+
+		// Region {{{2
+		region = this.regions.find(this.current_region, streamer);
+		if (region) {
+			this.parse_region(region);
+
+			if (region.keepend) {
+				this.stack.push({
+					token  : this.current_token,
+					region : region,
+				});
+			}
+
+		// White space {{{2
+		} else if (current_character <= ' ') {
 			this.handle_new_line(current_character);
 
-		// }}}3
+		// Number {{{2
+		} else if (current_character >= '0' && current_character <= '9') {
+			this.parse_number();
+
+		// Identifier {{{2
+		} else if (this.SPECIAL_CHARACTERS.indexOf(current_character) === -1) {
+			this.parse_identifier();
+
+		// Special character {{{2
 		} else {
-			// Region {{{3
-			region = this.regions.find(streamer);
-			if (region) {
-				this.parse_region(region);
-
-			// Number {{{3
-			} else if (current_character >= '0' && current_character <= '9') {
-				this.parse_number();
-
-			// Identifier {{{3
-			} else if (this.SPECIAL_CHARACTERS.indexOf(current_character) === -1) {
-				this.parse_identifier();
-
-			// Special character {{{3
-			} else {
-				this.parse_special_character();
-			}
-			// }}}3
+			this.parse_special_character();
 		}
+		// }}}2
 
 		current_character = streamer.next();
 	}
@@ -206,28 +285,11 @@ p.parse = function (source) {
 };
 
 // Parse number {{{1
-//
-// Тоо нь цэгээр эхэлж болохгүй, энэ нь програмыг уншихад улам төвөгтэй болгодог.
-// Бутархай тоо тэгээр (0) эхэлж болно.
-//
-
-p.IS_FINITE = isFinite;
-p.NUMBER_VALIDATION = [
-	',', ';',            // separators
-	'}', ']', ')',       // parentases
-	'*','/','+','-','%', // math operators
-	' ','\t','\r','\n',  // white spaces operators
-	'<','>',             // conditions operators
-	'?',':',             // ternary operatoes
-	'^','&','|','/'      // binary operators
-].join('');
-
 p.parse_number = function () {
 	var streamer = this.streamer, current_character;
 
 	this.prepare_new_token(streamer.current_index);
 
-	// Үргэлжлүүлээд дараагийн орны тоонуудыг харъя...
 	// jshint curly : false
 	for (current_character = streamer.next(); current_character >= '0' && current_character <= '9' ;
 		current_character = streamer.next());
@@ -247,7 +309,7 @@ p.SPECIAL_CHARACTERS = [
 	'(', ')', '-', '+',
 	'=', '[', ']', '/',
 	'?', '"', '{', '}',
-	'\\', '\'', '_'
+	'_', "'", '\\',
 ].join('');
 
 p.parse_identifier = function () {
@@ -267,13 +329,16 @@ p.parse_identifier = function () {
 
 // Parse region {{{1
 p.parse_region = function (region) {
-	var skip = region.skip, end = region.end,
+	var skip = region.skip,
 		streamer = this.streamer,
-		len = end.length,
 		i, is_matched, current_character, current_token;
 
 	this.prepare_new_token(streamer.current_index);
-	streamer.current_index += region.start.length;
+
+	region.start_length = region.start ? region.start.length : 0;
+	if (region.start_length) {
+		streamer.current_index += region.start_length;
+	}
 
 	if (region.contains) {
 		current_token          = this.make_token(region.type);
@@ -289,7 +354,10 @@ p.parse_region = function (region) {
 
 		this.current_token  = current_token;
 		this.current_region = region;
-		streamer.current_index -= 1;
+
+		if (region.start_length) {
+			streamer.current_index -= 1;
+		}
 		return;
 	}
 
@@ -302,7 +370,7 @@ p.parse_region = function (region) {
 		if (skip && current_character === skip[0]) {
 			is_matched = true;
 
-			for (i = 1; i < len; ++i) {
+			for (i = 1; i < skip.length; ++i) {
 				if (streamer.peek(streamer.current_index + i) !== skip[i]) {
 					is_matched = false;
 					break;
@@ -316,18 +384,7 @@ p.parse_region = function (region) {
 			}
 		}
 
-		if (this.check_end_token(streamer.current_index, end)) {
-			streamer.current_index += region.end.length;
-
-			this.add_token(
-				this.make_token(
-					region.type,
-					this.start.index + region.start.length,
-					streamer.current_index - this.start.index - region.start.length - end.length
-				)
-			);
-
-			streamer.current_index -= 1;
+		if (this.region_end(region, true)) {
 			return;
 		}
 
@@ -337,33 +394,14 @@ p.parse_region = function (region) {
 
 // Parse special character {{{1
 p.parse_special_character = function () {
-	var current_index = this.streamer.current_index;
-
-	if (this.current_token) {
-		var ignore_chars      = this.current_region.ignore_chars,
-			contains_chars    = this.current_region.contains_chars,
-			current_character = this.streamer.current();
-
-		if (this.check_end_token(current_index, this.current_region.end)) {
-			this.streamer.current_index += this.current_region.end.length;
-
-			this.set_end(this.current_token);
-			this.set_value(this.current_token);
-			this.current_token  = this.current_token.parent;
-			this.current_region = this.current_region.parent;
-			this.streamer.current_index -= 1;
-
-			return;
-		} else if (ignore_chars && ignore_chars.indexOf(current_character) >= 0) {
-			return;
-		} else if (! contains_chars || contains_chars.indexOf(current_character) === -1) {
-			this.prepare_new_token(current_index);
-			this.streamer.current_index += 1;
-			this.make_token("SpecialCharacter").error_unexpected_token();
-		}
+	if (this.current_region &&
+		(! this.current_region.contains_chars || this.current_region.contains_chars.indexOf(this.streamer.current()) === -1)) {
+		this.prepare_new_token(this.streamer.current_index);
+		this.streamer.current_index += 1;
+		this.make_token("SpecialCharacter").error_unexpected_token();
 	}
 
-	this.prepare_new_token(current_index);
+	this.prepare_new_token(this.streamer.current_index);
 	this.streamer.current_index += 1;
 
 	this.add_token( this.make_token("SpecialCharacter") );
@@ -371,22 +409,88 @@ p.parse_special_character = function () {
 };
 
 // Check end token {{{1
-p.check_end_token = function (current_index, end) {
-	var streamer = this.streamer,
-		i = 1, len = end.length, is_matched;
-
-	if (streamer.peek(current_index) === end[0]) {
-		is_matched = true;
-
-		for (; i < len; ++i) {
-			if (streamer.peek(current_index + i) !== end[i]) {
-				is_matched = false;
-				break;
+p.region_end = function (region, to_add) {
+	var i = 0;
+	if (this.is_array(region.end)) {
+		for (; i < region.end.length; ++i) {
+			if (this.check_end_token(region, region.end[i], to_add)) {
+				this.finallzie_region(region);
+				return true;
 			}
 		}
 	}
 
-	return is_matched;
+	if (this.check_end_token(region, region.end, to_add)) {
+		this.finallzie_region(region);
+		return true;
+	}
+
+	if (this.region_end_stack(region, to_add)) {
+		return true;
+	}
+};
+
+p.finallzie_region = function (region) {
+	for (var i = 0; i < this.stack.length; ++i) {
+		if (this.stack[i].region === region) {
+			this.current_token  = this.stack[i].token;
+			this.current_region = this.stack[i].region;
+			this.stack.splice(i, this.stack.length);
+		}
+	}
+};
+
+p.region_end_stack = function (region, to_add) {
+	for (var i = this.stack.length - 1, j; i >= 0; --i) {
+		if (this.is_array(this.stack[i].region.end)) {
+			for (j = 0; j < this.stack[i].region.end.length; ++j) {
+				if (this.check_end_token(region, this.stack[i].region.end[j], to_add)) {
+					this.finallzie_region(this.stack[i].region);
+					return true;
+				}
+			}
+		} else if (this.check_end_token(region, this.stack[i].region.end, to_add)) {
+			this.finallzie_region(this.stack[i].region);
+			return true;
+		}
+	}
+};
+
+p.check_end_token = function (region, end, to_add) {
+	var i        = 1,
+		streamer = this.streamer;
+
+	if (streamer.peek(streamer.current_index) === end[0]) {
+		for (; i < end.length; ++i) {
+			if (streamer.peek(streamer.current_index + i) !== end[i]) {
+				return false;
+			}
+		}
+
+		if (to_add) {
+			this.add_token(
+				this.make_token(
+					region.type,
+					region.name,
+					this.start.index + region.start_length,
+					streamer.current_index - this.start.index - region.start_length
+				)
+			);
+		}
+
+		if (! region.until) {
+			streamer.current_index += end.length;
+		}
+
+		if (this.current_token) {
+			this.set_end(this.current_token);
+			this.set_value(this.current_token);
+		}
+
+		streamer.current_index -= 1;
+
+		return true;
+	}
 };
 // }}}1
 
@@ -427,17 +531,16 @@ p.prepare_new_token = function (current_index) {
 };
 
 p.add_token = function (token) {
-	var current_token = this.current_token;
-	if (current_token) {
-		this.set_end(current_token);
-		this.set_value(current_token);
-		current_token.children.push(token);
+	if (this.current_token) {
+		this.set_end(this.current_token);
+		this.set_value(this.current_token);
+		this.current_token.children.push(token);
 	} else {
 		this.tokens.push(token);
 	}
 };
 
-p.make_token = function (type, offset, length) {
+p.make_token = function (type, name, offset, length) {
 	if (offset === void 0) {
 		offset = this.start.index;
 		length = this.streamer.current_index - this.start.index;
@@ -445,6 +548,7 @@ p.make_token = function (type, offset, length) {
 
 	return new Token({
 		type  : type,
+		name  : name || type,
 		value : this.streamer.seek(offset, length),
 		start : this.start,
 		end : {
