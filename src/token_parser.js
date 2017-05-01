@@ -1,7 +1,7 @@
 /* -.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.
 * File Name   : token_parser.js
 * Created at  : 2017-04-08
-* Updated at  : 2017-05-01
+* Updated at  : 2017-05-02
 * Author      : jeefo
 * Purpose     :
 * Description :
@@ -135,19 +135,17 @@ p.parse_identifier = function () {
 
 // Parse region {{{1
 p.parse_region = function (region) {
-	var skip = region.skip,
-		streamer = this.streamer,
+	var streamer = this.streamer,
 		i, is_matched, current_character, current_token;
 
 	this.prepare_new_token(streamer.current_index);
 
-	region.start_length = region.start ? region.start.length : 0;
-	if (region.start_length) {
-		streamer.current_index += region.start_length;
+	if (region.start) {
+		streamer.current_index += region.start.length;
 	}
 
 	if (region.contains) {
-		current_token          = this.make_token(region.type);
+		current_token          = this.make_token(region.type, region.name);
 		current_token.children = [];
 
 		if (this.current_token) {
@@ -161,7 +159,7 @@ p.parse_region = function (region) {
 		this.current_token  = current_token;
 		this.current_region = region;
 
-		if (region.start_length) {
+		if (region.start) {
 			streamer.current_index -= 1;
 		}
 		return;
@@ -172,20 +170,25 @@ p.parse_region = function (region) {
 	while (current_character) {
 		this.handle_new_line(current_character);
 
-		// skip handler
-		if (skip && current_character === skip[0]) {
-			is_matched = true;
+		// escape handler
+		if (current_character === region.escape_char) {
+			streamer.current_index += 2;
+			current_character = streamer.current();
+			continue;
+		}
 
-			for (i = 1; i < skip.length; ++i) {
-				if (streamer.peek(streamer.current_index + i) !== skip[i]) {
+		// skip handler
+		if (region.skip && current_character === region.skip[0]) {
+			for (i = 1, is_matched = true; i < region.skip.length; ++i) {
+				if (streamer.peek(streamer.current_index + i) !== region.skip[i]) {
 					is_matched = false;
 					break;
 				}
 			}
 
 			if (is_matched) {
-				streamer.current_index += skip.length;
-				current_character = streamer.peek(streamer.current_index);
+				streamer.current_index += region.skip.length;
+				current_character = streamer.current();
 				continue;
 			}
 		}
@@ -266,31 +269,25 @@ p.check_end_token = function (region, end, to_add) {
 	var i        = 1,
 		streamer = this.streamer;
 
-	if (streamer.peek(streamer.current_index) === end[0]) {
+	if (streamer.current() === end[0]) {
 		for (; i < end.length; ++i) {
 			if (streamer.peek(streamer.current_index + i) !== end[i]) {
 				return false;
 			}
 		}
 
-		if (to_add) {
-			this.add_token(
-				this.make_token(
-					region.type,
-					region.name,
-					this.start.index + region.start_length,
-					streamer.current_index - this.start.index - region.start_length
-				)
-			);
-		}
-
 		if (! region.until) {
 			streamer.current_index += end.length;
 		}
 
-		if (this.current_token) {
+		if (to_add) {
+			var token = this.make_token(region.type, region.name);
+			this.set_value(token, region.start ? region.start.length : 0, region.until ? 0 : end.length);
+
+			this.add_token(token);
+		} else {
 			this.set_end(this.current_token);
-			this.set_value(this.current_token);
+			this.set_value(this.current_token, region.start ? region.start.length : 0, region.until ? 0 : end.length);
 		}
 
 		streamer.current_index -= 1;
@@ -313,23 +310,22 @@ p.new_line = function () {
 	});
 };
 
-p.set_value = function (token) {
+// Set value without surrounding
+p.set_value = function (token, start_length, end_length) {
 	token.value = this.streamer.seek(
-		token.start.index,
-		(token.end.index - token.start.index)
+		token.start.index + start_length,
+		(token.end.index - token.start.index - start_length - end_length)
 	);
 };
 
 p.set_end = function (token) {
-	token.end = {
-		line   : this.lines.length,
-		column : (this.streamer.current_index - this.lines[this.lines.length - 1].index) + 1,
-		index  : this.streamer.current_index
-	};
+	token.end.line   = this.lines.length;
+	token.end.column = (this.streamer.current_index - this.lines[this.lines.length - 1].index);
+	token.end.index  = this.streamer.current_index;
 };
 
 p.prepare_new_token = function (current_index) {
-	this.start    = {
+	this.start = {
 		line   : this.lines.length,
 		column : (current_index - this.lines[this.lines.length - 1].index) + 1,
 		index  : current_index
@@ -338,19 +334,15 @@ p.prepare_new_token = function (current_index) {
 
 p.add_token = function (token) {
 	if (this.current_token) {
-		this.set_end(this.current_token);
-		this.set_value(this.current_token);
 		this.current_token.children.push(token);
 	} else {
 		this.tokens.push(token);
 	}
 };
 
-p.make_token = function (type, name, offset, length) {
-	if (offset === void 0) {
-		offset = this.start.index;
+p.make_token = function (type, name) {
+	var offset = this.start.index,
 		length = this.streamer.current_index - this.start.index;
-	}
 
 	return new Token({
 		type  : type,
@@ -358,9 +350,10 @@ p.make_token = function (type, name, offset, length) {
 		value : this.streamer.seek(offset, length),
 		start : this.start,
 		end : {
-			line   : this.lines.length,
-			column : (this.streamer.current_index - this.lines[this.lines.length - 1].index) + 1,
-			index  : this.streamer.current_index
+			line           : this.lines.length,
+			column         : (this.streamer.current_index - this.lines[this.lines.length - 1].index) + 1,
+			virtual_column : this.lines.column,
+			index          : this.streamer.current_index
 		},
 	});
 };

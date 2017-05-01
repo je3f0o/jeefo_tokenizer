@@ -1,7 +1,7 @@
 /* -.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.
 * File Name   : index.js
 * Created at  : 2017-04-28
-* Updated at  : 2017-04-28
+* Updated at  : 2017-05-02
 * Author      : jeefo
 * Purpose     :
 * Description :
@@ -32,7 +32,7 @@ var source = source_files.map(function (file) {
 	var code = fse.readFileSync(`./${ file }`, "utf8").replace(IGNORE_REGEX, '');
 
 	if (file.startsWith("node_modules")) {
-		code = `${ code.replace(/^[^\(]+/, '!function') }(jeefo);`;
+		code = `${ code.replace(/function [^\(]+/, '!function') }(jeefo);`;
 	}
 
 	return code.trim();
@@ -44,17 +44,7 @@ var browser_source = `(function (jeefo, $window, $document) { "use strict";\n\n$
 var build_source   = `function fn (jeefo) {${ source }}`;
 var node_source    = `"use strict";module.exports=function (jeefo) {${ source }};`;
 
-browser_source = uglify.minify(browser_source, _package.uglify_config).code;
-build_source   = uglify.minify(build_source, _package.uglify_config).code;
-node_source    = uglify.minify(node_source, _package.uglify_config).code;
-
-// Final step
-var output_filename  = path.resolve(__dirname, `../dist/${ _package.name }.js`);
-var node_filename    = path.resolve(__dirname, `../dist/${ _package.name }.node.js`);
-var build_filename   = path.resolve(__dirname, `../dist/${ _package.name }.build.js`);
-var browser_filename = path.resolve(__dirname, `../dist/${ _package.name }.min.js`);
-
-var MAX_LENGTH = _package.name.length > "copyright".length ? _package.name.length : "copyright".length;
+var MAX_LENGTH = (_package.name.length > "copyright".length) ? _package.name.length : "copyright".length;
 var align = function (str, value) {
 	var i = 0, space = '', len = MAX_LENGTH - str.length;
 
@@ -64,18 +54,30 @@ var align = function (str, value) {
 
 	return `${ str }${ space } : ${ value }`;
 };
+var get_author = function () {
+	return align("Author", `${ _package.author.name }, <${ _package.author.email }>`);
+};
 
 var license = `The ${ _package.license } license`;
 
-browser_source = `/**
+var header = `/**
  * ${ align(_package.name, 'v' + _package.version) }
- * ${ align("Author", _package.author) }
+ * ${ get_author() }
  * ${ align("Homepage", _package.homepage) }
  * ${ align("License", license) }
  * ${ align("Copyright", _package.copyright) }
  **/
-${ browser_source }`;
+`;
 
+browser_source = header + uglify.minify(browser_source, _package.uglify_config).code;
+build_source   = header + uglify.minify(build_source, _package.uglify_config).code;
+node_source    = header + uglify.minify(node_source, _package.uglify_config).code;
+
+// Final step
+var output_filename  = path.resolve(__dirname, `../dist/${ _package.name }.js`);
+var node_filename    = path.resolve(__dirname, `../dist/${ _package.name }.node.js`);
+var build_filename   = path.resolve(__dirname, `../dist/${ _package.name }.build.js`);
+var browser_filename = path.resolve(__dirname, `../dist/${ _package.name }.min.js`);
 
 fse.outputFileSync(output_filename, source);
 fse.outputFileSync(node_filename, node_source);
@@ -88,7 +90,6 @@ console.log(`Build source: ${ get_filesize(build_filename) } bytes.`);
 console.log(`Browser source: ${ get_filesize(browser_filename) } bytes.`);
 
 // License
-var license_path = path.resolve(__dirname, "../LICENSE");
 license = `${ license }
 
 Copyright (c) ${ _package.copyright } - ${ _package.name }, ${ _package.homepage }
@@ -111,4 +112,5 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.`;
 
+var license_path = path.resolve(__dirname, "../LICENSE");
 fse.outputFileSync(license_path, license);

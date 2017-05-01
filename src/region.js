@@ -1,7 +1,7 @@
 /* -.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.
 * File Name   : region.js
 * Created at  : 2017-04-08
-* Updated at  : 2017-05-01
+* Updated at  : 2017-05-02
 * Author      : jeefo
 * Purpose     :
 * Description :
@@ -19,18 +19,17 @@ var p;
 
 var RegionDefinition = function (definition) {
 	this.type  = definition.type;
-	this.name  = definition.name;
+	this.name  = definition.name || definition.type;
 	this.start = definition.start;
 	this.end   = definition.end;
 
-	if (definition.skip)      { this.skip      = definition.skip;      }
-	if (definition.until)     { this.until     = definition.until;     }
-	if (definition.ignore)    { this.ignore    = definition.ignore;    }
-	if (definition.keepend)   { this.keepend   = definition.keepend;   }
-	if (definition.contains)  { this.contains  = definition.contains;  }
-	if (definition.contained) { this.contained = definition.contained; }
+	if (definition.skip)        { this.skip        = definition.skip;        }
+	if (definition.until)       { this.until       = definition.until;       }
+	if (definition.keepend)     { this.keepend     = definition.keepend;     }
+	if (definition.contains)    { this.contains    = definition.contains;    }
+	if (definition.contained)   { this.contained   = definition.contained;   }
+	if (definition.escape_char) { this.escape_char = definition.escape_char; }
 
-	if (definition.ignore)   { this.ignore_chars   = this.find_special_characters(definition.ignore);   }
 	if (definition.contains) { this.contains_chars = this.find_special_characters(definition.contains); }
 };
 p = RegionDefinition.prototype;
