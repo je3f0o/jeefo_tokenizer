@@ -1,7 +1,7 @@
 /* -.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.
 * File Name   : index.js
-* Created at  : 2017-04-28
-* Updated at  : 2017-05-02
+* Created at  : 2017-04-29
+* Updated at  : 2017-05-03
 * Author      : jeefo
 * Purpose     :
 * Description :
@@ -15,12 +15,12 @@ _._._._._._._._._._._._._._._._._._._._._.*/
 
 //ignore:end
 
-var fse      = require("fs-extra"),
-	path     = require("path"),
-	uglify   = require("uglify-js"),
-	_package = require("../package");
-
-var IGNORE_REGEX = /\/\/ignore\:start(?:(?!\/\/ignore\:end)[.\s\S])+.*\n/ig;
+var fse             = require("fs-extra"),
+	path            = require("path"),
+	uglify          = require("uglify-js"),
+	_package        = require("../package"),
+	preprocessor    = require("./preprocessor"),
+	header_compiler = require("./header_compiler");
 
 var get_filesize  = function (path) {
 	return fse.statSync(path).size;
@@ -29,67 +29,52 @@ var get_filesize  = function (path) {
 var source_files = require("../source_files");
 
 var source = source_files.map(function (file) {
-	var code = fse.readFileSync(`./${ file }`, "utf8").replace(IGNORE_REGEX, '');
+	var code = fse.readFileSync(`./${ file }`, "utf8");
 
-	if (file.startsWith("node_modules")) {
-		code = `${ code.replace(/function [^\(]+/, '!function') }(jeefo);`;
+	if (! file.startsWith("node_modules")) {
+		code = preprocessor(file, code).trim();
 	}
 
-	return code.trim();
+	return code;
 }).join("\n\n");
 
 // Compile
 
-var browser_source = `(function (jeefo, $window, $document) { "use strict";\n\n${ source }\n\n}(window.jeefo, window, document));`;
-var build_source   = `function fn (jeefo) {${ source }}`;
-var node_source    = `"use strict";module.exports=function (jeefo) {${ source }};`;
-
-var MAX_LENGTH = (_package.name.length > "copyright".length) ? _package.name.length : "copyright".length;
-var align = function (str, value) {
-	var i = 0, space = '', len = MAX_LENGTH - str.length;
-
-	for (; i < len; ++i) {
-		space += ' ';
-	}
-
-	return `${ str }${ space } : ${ value }`;
-};
-var get_author = function () {
-	return align("Author", `${ _package.author.name }, <${ _package.author.email }>`);
-};
-
 var license = `The ${ _package.license } license`;
+var header = header_compiler({
+	[_package.name] : `v${ _package.version }`,
+	Author          : `${ _package.author.name }, <${ _package.author.email }>`,
+	Homepage        : _package.homepage,
+	License         : license,
+	Copyright       : _package.copyright
+});
 
-var header = `/**
- * ${ align(_package.name, 'v' + _package.version) }
- * ${ get_author() }
- * ${ align("Homepage", _package.homepage) }
- * ${ align("License", license) }
- * ${ align("Copyright", _package.copyright) }
- **/
-`;
+var browser_source = `(function (jeefo, $window, $document) { "use strict";\n\n${ source }\n\n}(window.jeefo, window, document));`;
+var node_source    = `${ header }\n"use strict";\n\nmodule.exports = function (jeefo) {\n\n${ source }\n\nreturn jeefo;\n\n};`;
+var output_source  = `${ header }(function (jeefo) {\n\n${ source }\n\n}(jeefo));`;
+var node_min_source;
 
-browser_source = header + uglify.minify(browser_source, _package.uglify_config).code;
-build_source   = header + uglify.minify(build_source, _package.uglify_config).code;
-node_source    = header + uglify.minify(node_source, _package.uglify_config).code;
+browser_source  = header + uglify.minify(browser_source, _package.uglify_config).code;
+node_min_source = header + uglify.minify(node_source, _package.uglify_config).code;
 
 // Final step
-var output_filename  = path.resolve(__dirname, `../dist/${ _package.name }.js`);
-var node_filename    = path.resolve(__dirname, `../dist/${ _package.name }.node.js`);
-var build_filename   = path.resolve(__dirname, `../dist/${ _package.name }.build.js`);
-var browser_filename = path.resolve(__dirname, `../dist/${ _package.name }.min.js`);
+var output_filename   = path.resolve(__dirname, `../dist/${ _package.name }.js`);
+var node_filename     = path.resolve(__dirname, `../dist/${ _package.name }.node.js`);
+var node_min_filename = path.resolve(__dirname, `../dist/${ _package.name }.node.min.js`);
+var browser_filename  = path.resolve(__dirname, `../dist/${ _package.name }.min.js`);
 
-fse.outputFileSync(output_filename, source);
+
+fse.outputFileSync(output_filename, output_source);
 fse.outputFileSync(node_filename, node_source);
-fse.outputFileSync(build_filename, build_source);
+fse.outputFileSync(node_min_filename, node_min_source);
 fse.outputFileSync(browser_filename, browser_source);
 
 console.log(`Raw source: ${ get_filesize(output_filename) } bytes.`);
-console.log(`Node source: ${ get_filesize(build_filename) } bytes.`);
-console.log(`Build source: ${ get_filesize(build_filename) } bytes.`);
+console.log(`Node source: ${ get_filesize(node_filename) } bytes.`);
+console.log(`Node min source: ${ get_filesize(node_min_filename) } bytes.`);
 console.log(`Browser source: ${ get_filesize(browser_filename) } bytes.`);
 
-// License
+// License {{{1
 license = `${ license }
 
 Copyright (c) ${ _package.copyright } - ${ _package.name }, ${ _package.homepage }
@@ -114,3 +99,4 @@ THE SOFTWARE.`;
 
 var license_path = path.resolve(__dirname, "../LICENSE");
 fse.outputFileSync(license_path, license);
+// }}}1

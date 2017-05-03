@@ -1,7 +1,7 @@
 /* -.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.
 * File Name   : token.js
 * Created at  : 2017-04-08
-* Updated at  : 2017-04-26
+* Updated at  : 2017-05-03
 * Author      : jeefo
 * Purpose     :
 * Description :
@@ -16,8 +16,8 @@ _._._._._._._._._._._._._._._._._._._._._.*/
 //ignore:end
 
 var Token = function (info) {
-	for (var prop in info) {
-		this[prop] = info[prop];
+	for (var keys = Object.keys(info), i = keys.length - 1; i >= 0; --i) {
+		this[keys[i]] = info[keys[i]];
 	}
 };
 var p = Token.prototype;
@@ -30,7 +30,7 @@ p.error = function (message) {
 	throw error;
 };
 p.error_unexpected_type = function () {
-	this.error("Unexpected " + this.type);
+	this.error(`Unexpected ${ this.type }`);
 };
 p.error_unexpected_token = function () {
 	this.error("Unexpected token");

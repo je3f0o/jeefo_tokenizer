@@ -1,7 +1,7 @@
 /* -.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.
 * File Name   : token_parser.js
 * Created at  : 2017-04-08
-* Updated at  : 2017-05-02
+* Updated at  : 2017-05-03
 * Author      : jeefo
 * Purpose     :
 * Description :
@@ -178,9 +178,9 @@ p.parse_region = function (region) {
 		}
 
 		// skip handler
-		if (region.skip && current_character === region.skip[0]) {
+		if (region.skip && current_character === region.skip.charAt(0)) {
 			for (i = 1, is_matched = true; i < region.skip.length; ++i) {
-				if (streamer.peek(streamer.current_index + i) !== region.skip[i]) {
+				if (streamer.peek(streamer.current_index + i) !== region.skip.charAt(i)) {
 					is_matched = false;
 					break;
 				}
@@ -269,9 +269,9 @@ p.check_end_token = function (region, end, to_add) {
 	var i        = 1,
 		streamer = this.streamer;
 
-	if (streamer.current() === end[0]) {
+	if (streamer.current() === end.charAt(0)) {
 		for (; i < end.length; ++i) {
-			if (streamer.peek(streamer.current_index + i) !== end[i]) {
+			if (streamer.peek(streamer.current_index + i) !== end.charAt(i)) {
 				return false;
 			}
 		}

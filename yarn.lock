@@ -238,9 +238,9 @@ jeefo@0.0.8, jeefo@^0.0.8:
   version "0.0.8"
   resolved "https://registry.yarnpkg.com/jeefo/-/jeefo-0.0.8.tgz#ae2d8965b09336f509095c22c5c695df5fbbe655"
 
-jeefo_core@^0.0.4:
-  version "0.0.4"
-  resolved "https://registry.yarnpkg.com/jeefo_core/-/jeefo_core-0.0.4.tgz#8baad990c7093b00b00038ffd747db7d741be91b"
+jeefo_core@^0.0.6:
+  version "0.0.6"
+  resolved "https://registry.yarnpkg.com/jeefo_core/-/jeefo_core-0.0.6.tgz#397868bad323408d57a04dd44bb9d58f6c144edf"
   dependencies:
     jeefo "0.0.8"
 

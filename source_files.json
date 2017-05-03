@@ -1,5 +1,5 @@
 [
-	"node_modules/jeefo_core/dist/jeefo_core.build.js",
+	"node_modules/jeefo_core/dist/jeefo_core.js",
 	"src/token.js",
 	"src/region.js",
 	"src/string_stream.js",
