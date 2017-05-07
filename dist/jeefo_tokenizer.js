@@ -224,13 +224,13 @@ run("$injector", function ($injector) {
 });
 
 /**
- * jeefo_tokenizer : v0.0.19
+ * jeefo_tokenizer : v0.0.20
  * Author          : je3f0o, <je3f0o@gmail.com>
  * Homepage        : https://github.com/je3f0o/jeefo_tokenizer
  * License         : The MIT License
  * Copyright       : 2017
  **/
-jeefo.use(function () {
+jeefo.use(function (jeefo) {
 
 /* -.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.
 * File Name   : token.js

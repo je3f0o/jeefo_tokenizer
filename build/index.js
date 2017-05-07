@@ -52,7 +52,7 @@ var header = header_compiler({
 	Copyright       : _package.copyright
 });
 
-source = `${ header }jeefo.use(function () {\n\n${ source.join("\n\n") }\n\n});`;
+source = `${ header }jeefo.use(function (jeefo) {\n\n${ source.join("\n\n") }\n\n});`;
 libs.push(source);
 source = libs.join("\n\n");
 
