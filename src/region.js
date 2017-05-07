@@ -31,8 +31,10 @@ var RegionDefinition = function (definition) {
 	if (definition.contains) { this.contains_chars = this.find_special_characters(definition.contains); }
 };
 RegionDefinition.prototype = {
+	RegionDefinition : RegionDefinition,
+
 	copy : function () {
-		return new this.constructor(this);
+		return new this.RegionDefinition(this);
 	},
 
 	find_special_characters : function (container) {

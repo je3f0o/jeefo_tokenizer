@@ -2,7 +2,7 @@
  * jeefo_core : v0.0.7
  * Author     : je3f0o, <je3f0o@gmail.com>
  * Homepage   : https://github.com/je3f0o/jeefo_core
- * License    : The MIT license
+ * License    : The MIT License
  * Copyright  : 2017
  **/
 jeefo.use(function () {
@@ -224,10 +224,10 @@ run("$injector", function ($injector) {
 });
 
 /**
- * jeefo_tokenizer : v0.0.17
+ * jeefo_tokenizer : v0.0.18
  * Author          : je3f0o, <je3f0o@gmail.com>
  * Homepage        : https://github.com/je3f0o/jeefo_tokenizer
- * License         : The MIT license
+ * License         : The MIT License
  * Copyright       : 2017
  **/
 jeefo.use(function () {
@@ -283,8 +283,10 @@ var RegionDefinition = function (definition) {
 	if (definition.contains) { this.contains_chars = this.find_special_characters(definition.contains); }
 };
 RegionDefinition.prototype = {
+	RegionDefinition : RegionDefinition,
+
 	copy : function () {
-		return new this.constructor(this);
+		return new this.RegionDefinition(this);
 	},
 
 	find_special_characters : function (container) {
@@ -433,7 +435,7 @@ StringStream.prototype = {
 /* -.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.
 * File Name   : token_parser.js
 * Created at  : 2017-04-08
-* Updated at  : 2017-05-06
+* Updated at  : 2017-05-07
 * Author      : jeefo
 * Purpose     :
 * Description :
@@ -459,7 +461,7 @@ parse : function (source) {
 
 	while (current_character) {
 		if (this.current_region) {
-			if (this.current_region.ignore_chars && this.current_region.ignore_chars.indexOf(current_character) !== -1) {
+			if (current_character === this.current_region.escape_char) {
 				current_character = streamer.next();
 				continue;
 			} else if (this.region_end(this.current_region)) {
@@ -772,6 +774,8 @@ make_token : function (type, name) {
 		virtual_column : this.lines.column,
 		index          : this.streamer.current_index
 	};
+
+	return token;
 },
 
 };

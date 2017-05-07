@@ -43,7 +43,7 @@ source_files.forEach(function (file) {
 
 // Compile
 
-var license = `The ${ _package.license } license`;
+var license = `The ${ _package.license } License`;
 var header = header_compiler({
 	[_package.name] : `v${ _package.version }`,
 	Author          : `${ _package.author.name }, <${ _package.author.email }>`,

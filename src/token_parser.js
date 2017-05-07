@@ -1,7 +1,7 @@
 /* -.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.
 * File Name   : token_parser.js
 * Created at  : 2017-04-08
-* Updated at  : 2017-05-06
+* Updated at  : 2017-05-07
 * Author      : jeefo
 * Purpose     :
 * Description :
@@ -39,7 +39,7 @@ parse : function (source) {
 
 	while (current_character) {
 		if (this.current_region) {
-			if (this.current_region.ignore_chars && this.current_region.ignore_chars.indexOf(current_character) !== -1) {
+			if (current_character === this.current_region.escape_char) {
 				current_character = streamer.next();
 				continue;
 			} else if (this.region_end(this.current_region)) {
@@ -352,6 +352,8 @@ make_token : function (type, name) {
 		virtual_column : this.lines.column,
 		index          : this.streamer.current_index
 	};
+
+	return token;
 },
 
 };
