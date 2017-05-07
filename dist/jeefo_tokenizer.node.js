@@ -4,13 +4,13 @@
 module.exports = function (jeefo) {
 
 /**
- * jeefo_core : v0.0.8
+ * jeefo_core : v0.0.9
  * Author     : je3f0o, <je3f0o@gmail.com>
  * Homepage   : https://github.com/je3f0o/jeefo_core
  * License    : The MIT License
  * Copyright  : 2017
  **/
-jeefo.use(function () {
+jeefo.use(function (jeefo) {
 
 /* -.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.
 * File Name   : core.js
@@ -229,7 +229,7 @@ run("$injector", function ($injector) {
 });
 
 /**
- * jeefo_tokenizer : v0.0.18
+ * jeefo_tokenizer : v0.0.19
  * Author          : je3f0o, <je3f0o@gmail.com>
  * Homepage        : https://github.com/je3f0o/jeefo_tokenizer
  * License         : The MIT License
