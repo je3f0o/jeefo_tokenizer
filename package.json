@@ -1,14 +1,14 @@
 {
   "name": "jeefo_tokenizer",
-  "version": "0.0.16",
+  "version": "0.0.17",
   "homepage": "https://github.com/je3f0o/jeefo_tokenizer",
+  "copyright": "2017",
   "description": "jeefo tokenizer",
   "author": {
     "name": "je3f0o",
     "email": "je3f0o@gmail.com"
   },
   "license": "MIT",
-  "copyright": "2017",
   "main": "index.js",
   "scripts": {
     "build": "node build"
@@ -29,8 +29,8 @@
     "uglify-js": "^2.8.22"
   },
   "dependencies": {
-    "jeefo": "^0.0.8",
-    "jeefo_core": "^0.0.6"
+    "jeefo": "^0.0.9",
+    "jeefo_core": "^0.0.7"
   },
   "uglify_config": {
     "mangle": {

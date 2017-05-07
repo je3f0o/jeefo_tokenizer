@@ -1,112 +1,102 @@
-/**
- * jeefo_tokenizer : v0.0.16
- * Author          : je3f0o, <je3f0o@gmail.com>
- * Homepage        : https://github.com/je3f0o/jeefo_tokenizer
- * License         : The MIT license
- * Copyright       : 2017
- **/
 
 "use strict";
 
 module.exports = function (jeefo) {
 
 /**
- * jeefo_core : v0.0.6
+ * jeefo_core : v0.0.7
  * Author     : je3f0o, <je3f0o@gmail.com>
  * Homepage   : https://github.com/je3f0o/jeefo_core
  * License    : The MIT license
- * Copyright  : undefined
+ * Copyright  : 2017
  **/
-(function (jeefo) {
+jeefo.use(function () {
 
 /* -.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.
 * File Name   : core.js
 * Created at  : 2017-04-08
-* Updated at  : 2017-05-03
+* Updated at  : 2017-05-07
 * Author      : jeefo
 * Purpose     :
 * Description :
 _._._._._._._._._._._._._._._._._._._._._.*/
 
-var core_module = jeefo.module("jeefo_core", []);
+var core_module = jeefo.module("jeefo_core", []),
 
-var _transformer = {
-	CAMEL_CASE_REGEXP : /[A-Z]/g,
-	snake_replacer : function (letter, pos) {
-		return (pos ? '_' : '') + letter.toLowerCase();
-	},
-	dash_replacer : function (letter, pos) {
+CAMEL_CASE_REGEXP = /[A-Z]/g,
+dash_case = function (str) {
+	return str.replace(CAMEL_CASE_REGEXP, function (letter, pos) {
 		return (pos ? '-' : '') + letter.toLowerCase();
-	},
-	snake_case : function (str) {
-		return str.replace(this.CAMEL_CASE_REGEXP, this.snake_replacer);
-	},
-	dash_case : function (str) {
-		return str.replace(this.CAMEL_CASE_REGEXP, this.dash_replacer);
-	}
+	});
+},
+snake_case = function (str) {
+	return str.replace(CAMEL_CASE_REGEXP, function (letter, pos) {
+		return (pos ? '_' : '') + letter.toLowerCase();
+	});
+},
+
+to_string          = Object.prototype.toString,
+function_to_string = Function.toString,
+
+IS_DIGITS_SIGNED_INT      = /^\-?\d+$/,
+IS_DIGITS_UNSIGNED_INT    = /^\d+$/,
+IS_DIGITS_SIGNED_NUMBER   = /^\-?\d+(?:.\d+)?$/,
+IS_DIGITS_UNSIGNED_NUMNER = /^\d+(?:.\d+)?$/,
+
+// Used to detect host constructors (Safari > 4; really typed array specific)
+HOST_CONSTRUCTOR_REGEX = /^\[object .+?Constructor\]$/,
+/*
+// Compile a regexp using a common native method as a template.
+// We chose `Object#toString` because there's a good chance it is not being mucked with.
+new RegExp('^' +
+	// Coerce `Object#toString` to a string
+	String(to_string).
+		// Escape any special regexp characters
+		replace(/[.*+?^${}()|[\]\/\\]/g, "\\$&").
+		// Replace mentions of `toString` with `.*?` to keep the template generic.
+		// Replace thing like `for ...` to support environments like Rhino which add extra info
+		// such as method arity.
+		replace(/toString|(function).*?(?=\\\()| for .+?(?=\\\])/g, "$1.*?") + '$'
+)
+*/
+NATIVE_REGEX = /^function.*?\(\) \{ \[native code\] \}$/,
+
+is_date = function (value) {
+	return to_string.call(value) === "[object Date]";
+},
+
+is_regex = function (value) {
+	return to_string.call(value) === "[object RegExp]";
+},
+
+is_digits = function (value, is_unsigned) {
+	return (is_unsigned ? IS_DIGITS_UNSIGNED_NUMNER : IS_DIGITS_SIGNED_NUMBER).test(value);
+},
+
+is_digits_int = function (value, is_unsigned) {
+	return (is_unsigned ? IS_DIGITS_UNSIGNED_INT : IS_DIGITS_SIGNED_INT).test(value);
+},
+
+is_native = function (value) {
+	var type = typeof value;
+	return type === "function" ?
+		// Use `Function#toString` to bypass the value's own `toString` method
+		// and avoid being faked out.
+		NATIVE_REGEX.test(function_to_string.call(value)) :
+		// Fallback to a host object check because some environments will represent
+		// things like typed arrays as DOM methods which may not conform to the
+		// normal native pattern.
+		(value && type === "object" && HOST_CONSTRUCTOR_REGEX.test(to_string.call(value))) || false;	
+},
+
+json_parse = function (value) {
+	try {
+		return JSON.parse(value);
+	} catch (e) {}
 };
 
-// TODO: move it into jeefo.js
-core_module.extend("curry", ["$injector"], function ($injector) {
-
-	var make_injectable = function (factory) {
-		return function (name, dependencies, fn, resolve_once) {
-			if (typeof dependencies === "function") {
-				resolve_once = fn;
-				fn           = dependencies;
-				dependencies = [];
-			} else if (typeof dependencies === "string") {
-				dependencies = [dependencies];
-			}
-
-			if (resolve_once === void 0) {
-				resolve_once = true;
-			}
-
-			return factory.call(this, name, {
-				fn           : fn,
-				dependencies : dependencies,
-				resolve_once : resolve_once,
-			});
-		};
-	};
-
-	var t = _transformer;
-	var curry_maker = make_injectable(function (name, injectable) {
-		$injector.register(t.snake_case(name + "Curry"), injectable);
-	});
-
-	curry_maker("makeInjectable", function () {
-		return make_injectable;
-	});
-
-	return curry_maker;
-});
-
-core_module.extend("run", ["$injector"], function ($injector) {
-	var LocalArray = Array;
-	return function (dependencies, fn) {
-		if (typeof dependencies === "function") {
-			return dependencies.call(this);
-		} else if (typeof dependencies === "string") {
-			return fn.call(this, $injector.resolve_sync(dependencies));
-		}
-
-		for (var args = new LocalArray(dependencies.length), i = args.length - 1; i >= 0; --i) {
-			args[i] = $injector.resolve_sync(dependencies[i]);
-		}
-
-		return fn.apply(this, args);
-	};
-});
-
-core_module.extend("namespace", ["$injector", "make_injectable_curry"], function (injector, make_injectable_curry) {
-	var Empty = function () {};
-	var object_maker = function () {
-		return new Empty();
-	};
-
-	var namespace_maker = make_injectable_curry(function (full_name, injectable) {
+core_module.extend("namespace", ["$injector", "make_injectable"], function (injector, make_injectable) {
+	return function (full_name) {
 		var namespaces = full_name.split('.'),
 			name = namespaces.pop(),
 			i = 0, namespace = '', part, container;
@@ -122,9 +112,7 @@ core_module.extend("namespace", ["$injector", "make_injectable_curry"], function
 
 			if (! injector.has(namespace)) {
 				injector.register(namespace, {
-					fn           : object_maker,
-					dependencies : [],
-					resolve_once : true,
+					fn : function () { return {}; }
 				});
 
 				if (container) {
@@ -133,86 +121,152 @@ core_module.extend("namespace", ["$injector", "make_injectable_curry"], function
 			}
 		}
 
-		injector.register(full_name, injectable);
+		injector.register(full_name, make_injectable.apply(null, arguments));
 
 		if (namespace) {
 			container       = injector.resolve_sync(namespace);
 			container[name] = injector.resolve_sync(full_name);
 		}
-	});
 
-	var local_transformer = _transformer;
-	namespace_maker("transform.dash_case", function () {
-		return function (str) {
-			return local_transformer.dash_case(str);
-		};
-	});
-	namespace_maker("transform.snake_case", function () {
-		return function (str) {
-			return local_transformer.snake_case(str);
-		};
-	});
+		return this;
+	};
+}).
 
-	return namespace_maker;
-});
+namespace("transform.dash_case", function () {
+	return dash_case;
+}).
 
-core_module.extend("factory", [
+namespace("transform.snake_case", function () {
+	return snake_case;
+}).
+
+extend("curry", [
 	"$injector",
+	"make_injectable",
 	"transform.snake_case",
-	"make_injectable_curry",
-], function (injector, snake_case, make_injectable_curry) {
-	return make_injectable_curry(function (name, injectable) {
-		injector.register(snake_case(name + "Factory"), injectable);
-	});
-});
+], function ($injector, make_injectable, snake_case) {
+	return function (name) {
+		$injector.register(snake_case(name + "Curry"), make_injectable.apply(null, arguments));
+		return this;
+	};
+}).
 
-core_module.extend("service", [
+extend("run", ["$injector", "$q", "Array"], function ($injector, $q, Arr) {
+	var instance = this;
+
+	return function (dependencies, fn) {
+		if (typeof dependencies === "function") {
+			dependencies.call(this);
+		} else if (typeof dependencies === "string") {
+			$injector.resolve(dependencies).then(function (value) {
+				fn.call(instance, value);
+			});
+		} else {
+			var	args = new Arr(dependencies.length);
+
+			$q.for_each_async(dependencies, function (dependency, index, next) {
+				$injector.resolve(dependency).then(function (value) {
+					args[index] = value;
+					next();
+				});
+			}).then(function () {
+				fn.apply(instance, args);
+			});
+		}
+
+		return this;
+	};
+}).
+
+extend("factory", [
 	"$injector",
+	"make_injectable",
 	"transform.snake_case",
-	"make_injectable_curry",
-], function (injector, snake_case, make_injectable_curry) {
-	return make_injectable_curry(function (name, injectable) {
+], function ($injector, make_injectable, snake_case) {
+	return function (name) {
+		$injector.register(snake_case(name + "Factory"), make_injectable.apply(null, arguments));
+		return this;
+	};
+}).
+
+extend("service", [
+	"$injector",
+	"make_injectable",
+	"transform.snake_case",
+], function ($injector, make_injectable, snake_case) {
+	return function (name) {
+		var injectable = make_injectable.apply(null, arguments);
 		injectable.is_constructor = true;
-		injector.register(snake_case(name + "Service"), injectable);
+
+		$injector.register(snake_case(name + "Service"), injectable);
+		return this;
+	};
+}).
+
+run("$injector", function ($injector) {
+
+	$injector.register("is_date", {
+		fn : function () { return is_date; }
+	}).
+	register("is_regex", {
+		fn : function () { return is_regex; }
+	}).
+	register("is_digit", {
+		fn : function () { return is_digits; }
+	}).
+	register("is_digit_int", {
+		fn : function () { return is_digits_int; }
+	}).
+	register("is_native", {
+		fn : function () { return is_native; }
+	}).
+	register("json_parse", {
+		fn : function () { return json_parse; }
 	});
+
 });
 
-}(jeefo));
+});
+
+/**
+ * jeefo_tokenizer : v0.0.17
+ * Author          : je3f0o, <je3f0o@gmail.com>
+ * Homepage        : https://github.com/je3f0o/jeefo_tokenizer
+ * License         : The MIT license
+ * Copyright       : 2017
+ **/
+jeefo.use(function () {
 
 /* -.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.
 * File Name   : token.js
 * Created at  : 2017-04-08
-* Updated at  : 2017-05-03
+* Updated at  : 2017-05-06
 * Author      : jeefo
 * Purpose     :
 * Description :
 _._._._._._._._._._._._._._._._._._._._._.*/
 
-var Token = function (info) {
-	for (var keys = Object.keys(info), i = keys.length - 1; i >= 0; --i) {
-		this[keys[i]] = info[keys[i]];
-	}
-};
-var p = Token.prototype;
-
-p.error = function (message) {
-	var error = new SyntaxError(message);
-	error.token        = this.value;
-	error.lineNumber   = this.start.line;
-	error.columnNumber = this.start.column;
-	throw error;
-};
-p.error_unexpected_type = function () {
-	this.error("Unexpected " + this.type);
-};
-p.error_unexpected_token = function () {
-	this.error("Unexpected token");
+var Token = function () {};
+Token.prototype = {
+	error : function (message) {
+		var error = new SyntaxError(message);
+		error.value        = this.value;
+		error.lineNumber   = this.start.line;
+		error.columnNumber = this.start.column;
+		throw error;
+	},
+	error_unexpected_type : function () {
+		this.error("Unexpected " + this.type);
+	},
+	error_unexpected_token : function () {
+		this.error("Unexpected token");
+	},
 };
 
 /* -.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.
 * File Name   : region.js
 * Created at  : 2017-04-08
-* Updated at  : 2017-05-02
+* Updated at  : 2017-05-07
 * Author      : jeefo
 * Purpose     :
 * Description :
@@ -233,20 +287,18 @@ var RegionDefinition = function (definition) {
 
 	if (definition.contains) { this.contains_chars = this.find_special_characters(definition.contains); }
 };
-p = RegionDefinition.prototype;
+RegionDefinition.prototype = {
+	copy : function () {
+		return new this.constructor(this);
+	},
 
-p.RegionDefinition = RegionDefinition;
-
-p.copy = function () {
-	return new this.RegionDefinition(this);
-};
-
-p.find_special_characters = function (container) {
-	for (var i = 0; i < container.length; ++i) {
-		if (container[i].type === "SpecialCharacter") {
-			return container[i].chars.join('');
+	find_special_characters : function (container) {
+		for (var i = container.length - 1; i >= 0; --i) {
+			if (container[i].type === "SpecialCharacter") {
+				return container[i].chars.join('');
+			}
 		}
-	}
+	},
 };
 
 var Region = function (language) {
@@ -255,109 +307,110 @@ var Region = function (language) {
 	this.global_null_regions    = [];
 	this.contained_null_regions = [];
 };
-p = Region.prototype;
+Region.prototype = {
+	RegionDefinition : RegionDefinition,
 
-p.sort_function = function (a, b) { return a.start.length - b.start.length; };
+	sort_function : function (a, b) { return a.start.length - b.start.length; },
 
-p.register = function (region) {
-	region = new RegionDefinition(region);
+	register : function (region) {
+		region = new this.RegionDefinition(region);
 
-	if (region.start) {
-		if (this.hash[region.start[0]]) {
-			this.hash[region.start[0]].push(region);
+		if (region.start) {
+			if (this.hash[region.start[0]]) {
+				this.hash[region.start[0]].push(region);
 
-			this.hash[region.start[0]].sort(this.sort_function);
+				this.hash[region.start[0]].sort(this.sort_function);
+			} else {
+				this.hash[region.start[0]] = [region];
+			}
+		} else if (region.contained) {
+			this.contained_null_regions.push(region);
 		} else {
-			this.hash[region.start[0]] = [region];
+			if (this.global_null_region) {
+				throw Error("Overwritten global null region.");
+			}
+			this.global_null_region = region;
 		}
-	} else if (region.contained) {
-		this.contained_null_regions.push(region);
-	} else {
-		if (this.global_null_region) {
-			throw Error("Overwritten global null region.");
-		}
-		this.global_null_region = region;
-	}
-};
+	},
 
-// Find {{{1
-p.find = function (parent, streamer) {
-	var i         = 0,
-		container = this.hash[streamer.current()],
-		start, j, k;
-	
-	// Has parent {{{2
-	if (parent && parent.contains) {
+	// Find {{{1
+	find : function (parent, streamer) {
+		var i         = 0,
+			container = this.hash[streamer.current()],
+			start, j, k;
+		
+		// Has parent {{{2
+		if (parent && parent.contains) {
 
-		// Search for contained regions {{{3
-		if (container) {
-			CONTAINER:
-			for (i = container.length - 1; i >= 0; --i) {
-				for (j = parent.contains.length - 1; j >= 0; --j) {
-					if (container[i].type !== parent.contains[j].type) {
+			// Search for contained regions {{{3
+			if (container) {
+				CONTAINER:
+				for (i = container.length - 1; i >= 0; --i) {
+					for (j = parent.contains.length - 1; j >= 0; --j) {
+						if (container[i].type !== parent.contains[j].type) {
+							continue;
+						}
+
+						for (start = container[i].start, k = start.length - 1; k >= 1; --k) {
+							if (streamer.peek(streamer.current_index + k) !== start.charAt(k)) {
+								continue CONTAINER;
+							}
+						}
+
+						return container[i].copy();
+					}
+				}
+			}
+
+			// Looking for null regions {{{3
+			for (i = parent.contains.length - 1; i >= 0; --i) {
+				for (j = this.contained_null_regions.length - 1; j >= 0; --j) {
+					if (this.contained_null_regions[j].type === parent.contains[i].type) {
+						return this.contained_null_regions[j].copy();
+					}
+				}
+			}
+			// }}}3
+
+		// No parent {{{2
+		// It means lookup for only global regions
+		} else {
+
+			// Has container {{{3
+			if (container) {
+
+				NO_PARENT_CONTAINER:
+				for (i = container.length - 1; i >= 0; --i) {
+					if (container[i].contained) {
 						continue;
 					}
 
-					for (k = 1, start = container[i].start; k < start.length; ++k) {
-						if (streamer.peek(streamer.current_index + k) !== start[k]) {
-							continue CONTAINER;
+					for (start = container[i].start, k = start.length - 1; k >= 1; --k) {
+						if (streamer.peek(streamer.current_index + k) !== start.charAt(k)) {
+							continue NO_PARENT_CONTAINER;
 						}
 					}
 
 					return container[i].copy();
 				}
 			}
-		}
-
-		// Looking for null regions {{{3
-		for (i = parent.contains.length - 1; i >= 0; --i) {
-			for (j = this.contained_null_regions.length - 1; j >= 0; --j) {
-				if (this.contained_null_regions[j].type === parent.contains[i].type) {
-					return this.contained_null_regions[j].copy();
-				}
+		
+			// Finally {{{3
+			if (this.global_null_region) {
+				return this.global_null_region.copy();
 			}
+			// }}}3
+
 		}
-		// }}}3
-
-	// No parent {{{2
-	// It means lookup for only global regions
-	} else {
-
-		// Has container {{{3
-		if (container) {
-
-			NO_PARENT_CONTAINER:
-			for (i = container.length - 1; i >= 0; --i) {
-				if (container[i].contained) {
-					continue;
-				}
-
-				for (k = 1, start = container[i].start; k < start.length; ++k) {
-					if (streamer.peek(streamer.current_index + k) !== start[k]) {
-						continue NO_PARENT_CONTAINER;
-					}
-				}
-
-				return container[i].copy();
-			}
-		}
-	
-		// Finally {{{3
-		if (this.global_null_region) {
-			return this.global_null_region.copy();
-		}
-		// }}}3
-
-	}
-	// }}}2
-
+		// }}}2
+	},
+	// }}}1
 };
-// }}}1
 
 /* -.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.
 * File Name   : string_stream.js
 * Created at  : 2017-04-07
-* Updated at  : 2017-04-12
+* Updated at  : 2017-05-06
 * Author      : jeefo
 * Purpose     :
 * Description :
@@ -367,28 +420,25 @@ var StringStream = function (string) {
 	this.string        = string;
 	this.current_index = 0;
 };
-p = StringStream.prototype;
-
-p.peek = function (index) {
-	return this.string.charAt(index);
-};
-
-p.seek = function (offset, length) {
-	return this.string.substring(offset, offset + length);
-};
-
-p.next = function () {
-	return this.peek( (this.current_index += 1) );
-};
-
-p.current = function () {
-	return this.peek(this.current_index);
+StringStream.prototype = {
+	peek : function (index) {
+		return this.string.charAt(index);
+	},
+	seek : function (offset, length) {
+		return this.string.substring(offset, offset + length);
+	},
+	next : function () {
+		return this.peek( ++this.current_index );
+	},
+	current : function () {
+		return this.peek(this.current_index);
+	},
 };
 
 /* -.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.
 * File Name   : token_parser.js
 * Created at  : 2017-04-08
-* Updated at  : 2017-05-03
+* Updated at  : 2017-05-06
 * Author      : jeefo
 * Purpose     :
 * Description :
@@ -403,12 +453,12 @@ var TokenParser = function (language, regions) {
 	this.regions  = regions;
 	this.language = language;
 };
-p = TokenParser.prototype;
+TokenParser.prototype = {
 
-p.is_array = Array.isArray;
+is_array : Array.isArray,
 
 // Main parser {{{1
-p.parse = function (source) {
+parse : function (source) {
 	var streamer          = this.streamer = new StringStream(source),
 		current_character = streamer.current(), region;
 
@@ -460,10 +510,10 @@ p.parse = function (source) {
 	}
 
 	return this.tokens;
-};
+},
 
 // Parse number {{{1
-p.parse_number = function () {
+parse_number : function () {
 	var streamer = this.streamer, current_character;
 
 	this.prepare_new_token(streamer.current_index);
@@ -475,11 +525,11 @@ p.parse_number = function () {
 
 	this.add_token( this.make_token("Number") );
 	this.streamer.current_index -= 1;
-};
+},
 
 // Parse Identifier {{{1
 
-p.SPECIAL_CHARACTERS = [
+SPECIAL_CHARACTERS : [
 	',', '.', ';', ':',
 	'<', '>', '~', '`',
 	'!', '@', '#', '|', 
@@ -488,9 +538,9 @@ p.SPECIAL_CHARACTERS = [
 	'=', '[', ']', '/',
 	'?', '"', '{', '}',
 	'_', "'", '\\',
-].join('');
+].join(''),
 
-p.parse_identifier = function () {
+parse_identifier : function () {
 	var streamer = this.streamer, current_character;
 
 	this.prepare_new_token(streamer.current_index);
@@ -503,10 +553,10 @@ p.parse_identifier = function () {
 
 	this.add_token( this.make_token("Identifier") );
 	streamer.current_index -= 1;
-};
+},
 
 // Parse region {{{1
-p.parse_region = function (region) {
+parse_region : function (region) {
 	var streamer = this.streamer,
 		i, is_matched, current_character, current_token;
 
@@ -571,10 +621,10 @@ p.parse_region = function (region) {
 
 		current_character = streamer.next();
 	}
-};
+},
 
 // Parse special character {{{1
-p.parse_special_character = function () {
+parse_special_character : function () {
 	if (this.current_region &&
 		(! this.current_region.contains_chars || this.current_region.contains_chars.indexOf(this.streamer.current()) === -1)) {
 		this.prepare_new_token(this.streamer.current_index);
@@ -587,10 +637,10 @@ p.parse_special_character = function () {
 
 	this.add_token( this.make_token("SpecialCharacter") );
 	this.streamer.current_index -= 1;
-};
+},
 
 // Check end token {{{1
-p.region_end = function (region, to_add) {
+region_end : function (region, to_add) {
 	var i = 0;
 	if (this.is_array(region.end)) {
 		for (; i < region.end.length; ++i) {
@@ -609,9 +659,9 @@ p.region_end = function (region, to_add) {
 	if (this.region_end_stack(region, to_add)) {
 		return true;
 	}
-};
+},
 
-p.finallzie_region = function (region) {
+finallzie_region : function (region) {
 	for (var i = 0; i < this.stack.length; ++i) {
 		if (this.stack[i].region === region) {
 			this.current_token  = this.stack[i].token;
@@ -619,9 +669,9 @@ p.finallzie_region = function (region) {
 			this.stack.splice(i, this.stack.length);
 		}
 	}
-};
+},
 
-p.region_end_stack = function (region, to_add) {
+region_end_stack : function (region, to_add) {
 	for (var i = this.stack.length - 1, j; i >= 0; --i) {
 		if (this.is_array(this.stack[i].region.end)) {
 			for (j = 0; j < this.stack[i].region.end.length; ++j) {
@@ -635,9 +685,9 @@ p.region_end_stack = function (region, to_add) {
 			return true;
 		}
 	}
-};
+},
 
-p.check_end_token = function (region, end, to_add) {
+check_end_token : function (region, end, to_add) {
 	var i        = 1,
 		streamer = this.streamer;
 
@@ -666,79 +716,82 @@ p.check_end_token = function (region, end, to_add) {
 
 		return true;
 	}
-};
+},
 // }}}1
 
-p.handle_new_line = function (current_character) {
+handle_new_line : function (current_character) {
 	if (current_character === '\r' || current_character === '\n') {
 		this.new_line();
 	}
-};
+},
 
-p.new_line = function () {
+new_line : function () {
 	this.lines.push({
 		number : (this.lines.length + 1),
 		index  : (this.streamer.current_index + 1),
 	});
-};
+},
 
 // Set value without surrounding
-p.set_value = function (token, start_length, end_length) {
+set_value : function (token, start_length, end_length) {
 	token.value = this.streamer.seek(
 		token.start.index + start_length,
 		(token.end.index - token.start.index - start_length - end_length)
 	);
-};
+},
 
-p.set_end = function (token) {
+set_end : function (token) {
 	token.end.line   = this.lines.length;
 	token.end.column = (this.streamer.current_index - this.lines[this.lines.length - 1].index);
 	token.end.index  = this.streamer.current_index;
-};
+},
 
-p.prepare_new_token = function (current_index) {
+prepare_new_token : function (current_index) {
 	this.start = {
 		line   : this.lines.length,
 		column : (current_index - this.lines[this.lines.length - 1].index) + 1,
 		index  : current_index
 	};
-};
+},
 
-p.add_token = function (token) {
+add_token : function (token) {
 	if (this.current_token) {
 		this.current_token.children.push(token);
 	} else {
 		this.tokens.push(token);
 	}
-};
+},
 
-p.make_token = function (type, name) {
+make_token : function (type, name) {
 	var offset = this.start.index,
-		length = this.streamer.current_index - this.start.index;
+		length = this.streamer.current_index - this.start.index,
+		token  = new Token();
 
-	return new Token({
-		type  : type,
-		name  : name || type,
-		value : this.streamer.seek(offset, length),
-		start : this.start,
-		end : {
-			line           : this.lines.length,
-			column         : (this.streamer.current_index - this.lines[this.lines.length - 1].index) + 1,
-			virtual_column : this.lines.column,
-			index          : this.streamer.current_index
-		},
-	});
+	token.type  = type;
+	token.name  = name || type;
+	token.value = this.streamer.seek(offset, length);
+	token.start = this.start;
+	token.end   = {
+		line           : this.lines.length,
+		column         : (this.streamer.current_index - this.lines[this.lines.length - 1].index) + 1,
+		virtual_column : this.lines.column,
+		index          : this.streamer.current_index
+	};
+},
+
 };
 
 var jeefo_tokenizer = jeefo.module("jeefo_tokenizer", ["jeefo_core"]);
 jeefo_tokenizer.namespace("tokenizer.Token", function () {
 	return Token;
-});
-jeefo_tokenizer.namespace("tokenizer.Region", function () {
+}).
+namespace("tokenizer.Region", function () {
 	return Region;
-});
-jeefo_tokenizer.namespace("tokenizer.TokenParser", function () {
+}).
+namespace("tokenizer.TokenParser", function () {
 	return TokenParser;
+});
+
 });
 
 return jeefo;

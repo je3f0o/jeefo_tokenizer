@@ -234,15 +234,15 @@ is-symbol@^1.0.1:
   version "1.0.1"
   resolved "https://registry.yarnpkg.com/is-symbol/-/is-symbol-1.0.1.tgz#3cc59f00025194b6ab2e38dbae6689256b660572"
 
-jeefo@0.0.8, jeefo@^0.0.8:
-  version "0.0.8"
-  resolved "https://registry.yarnpkg.com/jeefo/-/jeefo-0.0.8.tgz#ae2d8965b09336f509095c22c5c695df5fbbe655"
+jeefo@^0.0.9:
+  version "0.0.9"
+  resolved "https://registry.yarnpkg.com/jeefo/-/jeefo-0.0.9.tgz#2d6394d61083bcfecfc2fb456f732c6343ab7dc4"
 
-jeefo_core@^0.0.6:
-  version "0.0.6"
-  resolved "https://registry.yarnpkg.com/jeefo_core/-/jeefo_core-0.0.6.tgz#397868bad323408d57a04dd44bb9d58f6c144edf"
+jeefo_core@^0.0.7:
+  version "0.0.7"
+  resolved "https://registry.yarnpkg.com/jeefo_core/-/jeefo_core-0.0.7.tgz#167f5ecdf83392a4b1a1789a43e1674293fa6cef"
   dependencies:
-    jeefo "0.0.8"
+    jeefo "^0.0.9"
 
 json3@3.3.2:
   version "3.3.2"
