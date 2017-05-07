@@ -238,11 +238,35 @@ jeefo@^0.0.12:
   version "0.0.12"
   resolved "https://registry.yarnpkg.com/jeefo/-/jeefo-0.0.12.tgz#61299e69c7f6c1a4a74ac5dc53bdecd7f0c69b01"
 
+jeefo@^0.0.13:
+  version "0.0.13"
+  resolved "https://registry.yarnpkg.com/jeefo/-/jeefo-0.0.13.tgz#6174a3e47a3f90175969950c49f0eb48503caa41"
+
+jeefo_core@^0.0.10:
+  version "0.0.10"
+  resolved "https://registry.yarnpkg.com/jeefo_core/-/jeefo_core-0.0.10.tgz#ece31c290ed47b266ffe78d5f6fc930c6df62178"
+  dependencies:
+    jeefo "^0.0.13"
+
 jeefo_core@^0.0.9:
   version "0.0.9"
   resolved "https://registry.yarnpkg.com/jeefo_core/-/jeefo_core-0.0.9.tgz#afd8fb7d40ce62216dde7c8dccf47cfe177c78f2"
   dependencies:
     jeefo "^0.0.12"
+
+jeefo_javascript_parser@^0.0.5:
+  version "0.0.5"
+  resolved "https://registry.yarnpkg.com/jeefo_javascript_parser/-/jeefo_javascript_parser-0.0.5.tgz#db9ca04f0a734eef54216bb41f33680ef52ebc16"
+  dependencies:
+    jeefo "^0.0.12"
+    jeefo_tokenizer "^0.0.20"
+
+jeefo_tokenizer@^0.0.20:
+  version "0.0.20"
+  resolved "https://registry.yarnpkg.com/jeefo_tokenizer/-/jeefo_tokenizer-0.0.20.tgz#5f467cf97120c2b75a505ac9d0a976771dd5799a"
+  dependencies:
+    jeefo "^0.0.12"
+    jeefo_core "^0.0.9"
 
 json3@3.3.2:
   version "3.3.2"
