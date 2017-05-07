@@ -57,7 +57,7 @@ libs.push(source);
 source = libs.join("\n\n");
 
 var browser_source = `(function (jeefo, $window, $document) { "use strict";\n\n${ source }\n\n}(window.jeefo, window, document));`;
-var node_source    = `\n"use strict";\n\nmodule.exports = function (jeefo) {\n\n${ source }\n\nreturn jeefo;\n\n};`;
+var node_source    = `\n"use strict";\n\nmodule.exports = function (jeefo) {\n\n${ source }\n\nreturn jeefo\n\n};`;
 var node_min_source;
 
 browser_source  = header + uglify.minify(browser_source, _package.uglify_config).code;

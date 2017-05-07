@@ -29,8 +29,8 @@
     "uglify-js": "^2.8.22"
   },
   "dependencies": {
-    "jeefo": "^0.0.9",
-    "jeefo_core": "^0.0.7"
+    "jeefo": "^0.0.12",
+    "jeefo_core": "^0.0.8"
   },
   "uglify_config": {
     "mangle": {
