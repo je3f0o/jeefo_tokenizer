@@ -4,7 +4,7 @@
 module.exports = function (jeefo) {
 
 /**
- * jeefo_tokenizer : v0.0.23
+ * jeefo_tokenizer : v0.0.24
  * Author          : je3f0o, <je3f0o@gmail.com>
  * Homepage        : https://github.com/je3f0o/jeefo_tokenizer
  * License         : The MIT License
@@ -67,6 +67,7 @@ var RegionDefinition = function (definition) {
 
 	if (definition.contains) { this.contains_chars = this.find_special_characters(definition.contains); }
 };
+
 RegionDefinition.prototype = {
 	RegionDefinition : RegionDefinition,
 
@@ -83,21 +84,23 @@ RegionDefinition.prototype = {
 	},
 };
 
-var Region = function (language, hash) {
+var Regions = function (hash) {
 	this.hash                   = hash || new JeefoObject();
-	this.language               = language;
 	this.global_null_regions    = [];
 	this.contained_null_regions = [];
 };
-Region.prototype = {
+
+Regions.prototype = {
+	Regions          : Regions,
 	RegionDefinition : RegionDefinition,
 
 	$copy : function () {
-		return new Region(this.language, this.hash.$copy());
+		return new this.Regions(this.hash.$copy());
 	},
 
 	sort_function : function (a, b) { return a.start.length - b.start.length; },
 
+	// Register {{{1
 	register : function (region) {
 		region = new this.RegionDefinition(region);
 
@@ -117,6 +120,8 @@ Region.prototype = {
 			}
 			this.global_null_region = region;
 		}
+
+		return this;
 	},
 
 	// Find {{{1
@@ -230,23 +235,21 @@ StringStream.prototype = {
 * Description :
 _._._._._._._._._._._._._._._._._._._._._.*/
 
-var TokenParser = function (language, regions) {
-	this.lines  = [{ number : 1, index : 0 }];
+var LexicalParser = function () {
 	this.start  = { line : 1, column : 1 };
-	this.tokens = [];
+	this.lines  = [{ number : 1, index : 0 }];
 	this.stack  = [];
-
-	this.regions  = regions;
-	this.language = language;
+	this.tokens = [];
 };
-TokenParser.prototype = {
+LexicalParser.prototype = {
 
 is_array : Array.isArray,
 
 // Main parser {{{1
-parse : function (source) {
-	var streamer          = this.streamer = new StringStream(source),
-		current_character = streamer.current(), region;
+parse : function (streamer, regions) {
+	var current_character = streamer.current(), region;
+
+	this.streamer = streamer;
 
 	while (current_character) {
 		if (this.current_region) {
@@ -263,7 +266,7 @@ parse : function (source) {
 		}
 
 		// Region {{{2
-		region = this.regions.find(this.current_region, streamer);
+		region = regions.find(this.current_region, streamer);
 		if (region) {
 			this.parse_region(region);
 
@@ -571,14 +574,53 @@ make_token : function (type, name) {
 
 };
 
+/* -.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.
+* File Name   : tokenizer.js
+* Created at  : 2017-05-10
+* Updated at  : 2017-05-11
+* Author      : jeefo
+* Purpose     :
+* Description :
+_._._._._._._._._._._._._._._._._._._._._.*/
+
+var Tokenizer = function (language, regions) {
+	this.regions                = regions || new this.Regions();
+	this.language               = language;
+	this.global_null_regions    = [];
+	this.contained_null_regions = [];
+};
+
+// Prototypes {{{1
+Tokenizer.prototype = {
+	Regions       : Regions,
+	Tokenizer     : Tokenizer,
+	StringStream  : StringStream,
+	LexicalParser : LexicalParser,
+
+	inherit : function (language) {
+		return new this.Tokenizer(language, this.regions.$copy());
+	},
+
+	parse : function (source) {
+		var lexical  = new this.LexicalParser(),
+			streamer = new this.StringStream(source);
+
+		return lexical.parse(streamer, this.regions);
+	},
+};
+// }}}1
+
 jeefo_tokenizer.namespace("tokenizer.Token", function () {
 	return Token;
 }).
-namespace("tokenizer.Region", function () {
-	return Region;
+namespace("tokenizer.Regions", function () {
+	return Regions;
 }).
-namespace("tokenizer.TokenParser", function () {
-	return TokenParser;
+namespace("tokenizer.LexicalParser", function () {
+	return LexicalParser;
+}).
+namespace("tokenizer.Tokenizer", function () {
+	return Tokenizer;
 });
 
 });

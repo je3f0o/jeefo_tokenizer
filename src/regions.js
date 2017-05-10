@@ -30,6 +30,7 @@ var RegionDefinition = function (definition) {
 
 	if (definition.contains) { this.contains_chars = this.find_special_characters(definition.contains); }
 };
+
 RegionDefinition.prototype = {
 	RegionDefinition : RegionDefinition,
 
@@ -46,21 +47,23 @@ RegionDefinition.prototype = {
 	},
 };
 
-var Region = function (language, hash) {
+var Regions = function (hash) {
 	this.hash                   = hash || new JeefoObject();
-	this.language               = language;
 	this.global_null_regions    = [];
 	this.contained_null_regions = [];
 };
-Region.prototype = {
+
+Regions.prototype = {
+	Regions          : Regions,
 	RegionDefinition : RegionDefinition,
 
 	$copy : function () {
-		return new Region(this.language, this.hash.$copy());
+		return new this.Regions(this.hash.$copy());
 	},
 
 	sort_function : function (a, b) { return a.start.length - b.start.length; },
 
+	// Register {{{1
 	register : function (region) {
 		region = new this.RegionDefinition(region);
 
@@ -80,6 +83,8 @@ Region.prototype = {
 			}
 			this.global_null_region = region;
 		}
+
+		return this;
 	},
 
 	// Find {{{1

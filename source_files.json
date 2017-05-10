@@ -1,6 +1,7 @@
 [
 	"src/token.js",
-	"src/region.js",
+	"src/regions.js",
 	"src/string_stream.js",
-	"src/token_parser.js"
+	"src/lexical_parser.js",
+	"src/tokenizer.js"
 ]

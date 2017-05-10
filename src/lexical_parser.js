@@ -9,33 +9,29 @@ _._._._._._._._._._._._._._._._._._._._._.*/
 //ignore:start
 "use strict";
 
-/* global jeefo */
+/* global */
 /* exported */
 /* exported */
 
-var Token        = require("./token"),
-	Region       = require("./region"),
-	StringStream = require("./string_stream");
+var Token = require("./token");
 
 //ignore:end
 
-var TokenParser = function (language, regions) {
-	this.lines  = [{ number : 1, index : 0 }];
+var LexicalParser = function () {
 	this.start  = { line : 1, column : 1 };
-	this.tokens = [];
+	this.lines  = [{ number : 1, index : 0 }];
 	this.stack  = [];
-
-	this.regions  = regions;
-	this.language = language;
+	this.tokens = [];
 };
-TokenParser.prototype = {
+LexicalParser.prototype = {
 
 is_array : Array.isArray,
 
 // Main parser {{{1
-parse : function (source) {
-	var streamer          = this.streamer = new StringStream(source),
-		current_character = streamer.current(), region;
+parse : function (streamer, regions) {
+	var current_character = streamer.current(), region;
+
+	this.streamer = streamer;
 
 	while (current_character) {
 		if (this.current_region) {
@@ -52,7 +48,7 @@ parse : function (source) {
 		}
 
 		// Region {{{2
-		region = this.regions.find(this.current_region, streamer);
+		region = regions.find(this.current_region, streamer);
 		if (region) {
 			this.parse_region(region);
 
@@ -359,13 +355,3 @@ make_token : function (type, name) {
 },
 
 };
-
-jeefo_tokenizer.namespace("tokenizer.Token", function () {
-	return Token;
-}).
-namespace("tokenizer.Region", function () {
-	return Region;
-}).
-namespace("tokenizer.TokenParser", function () {
-	return TokenParser;
-});
