@@ -1,7 +1,7 @@
 /* -.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.
 * File Name   : token_parser.js
 * Created at  : 2017-04-08
-* Updated at  : 2017-05-07
+* Updated at  : 2017-05-10
 * Author      : jeefo
 * Purpose     :
 * Description :
@@ -316,9 +316,11 @@ set_value : function (token, start_length, end_length) {
 },
 
 set_end : function (token) {
-	token.end.line   = this.lines.length;
-	token.end.column = (this.streamer.current_index - this.lines[this.lines.length - 1].index);
-	token.end.index  = this.streamer.current_index;
+	token.end = {
+		line   : this.lines.length,
+		column : (this.streamer.current_index - this.lines[this.lines.length - 1].index),
+		index  : this.streamer.current_index,
+	};
 },
 
 prepare_new_token : function (current_index) {
@@ -358,7 +360,6 @@ make_token : function (type, name) {
 
 };
 
-var jeefo_tokenizer = jeefo.module("jeefo_tokenizer", ["jeefo_core"]);
 jeefo_tokenizer.namespace("tokenizer.Token", function () {
 	return Token;
 }).
