@@ -242,9 +242,13 @@ jeefo@^0.0.13:
   version "0.0.13"
   resolved "https://registry.yarnpkg.com/jeefo/-/jeefo-0.0.13.tgz#6174a3e47a3f90175969950c49f0eb48503caa41"
 
-jeefo_core@^0.0.10:
-  version "0.0.10"
-  resolved "https://registry.yarnpkg.com/jeefo_core/-/jeefo_core-0.0.10.tgz#ece31c290ed47b266ffe78d5f6fc930c6df62178"
+jeefo@^0.0.15:
+  version "0.0.15"
+  resolved "https://registry.yarnpkg.com/jeefo/-/jeefo-0.0.15.tgz#3d63b7a712aab4ff5f913dd2dcb09f92c3ccb62f"
+
+jeefo_core@^0.0.12:
+  version "0.0.12"
+  resolved "https://registry.yarnpkg.com/jeefo_core/-/jeefo_core-0.0.12.tgz#2c553c393824cfc7119fc74d700f5a4e1b7757ea"
   dependencies:
     jeefo "^0.0.13"
 

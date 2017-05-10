@@ -1,7 +1,7 @@
 /* -.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.
 * File Name   : region.js
 * Created at  : 2017-04-08
-* Updated at  : 2017-05-07
+* Updated at  : 2017-05-10
 * Author      : jeefo
 * Purpose     :
 * Description :
@@ -46,14 +46,18 @@ RegionDefinition.prototype = {
 	},
 };
 
-var Region = function (language) {
-	this.hash                   = {};
+var Region = function (language, hash) {
+	this.hash                   = hash || new JeefoObject();
 	this.language               = language;
 	this.global_null_regions    = [];
 	this.contained_null_regions = [];
 };
 Region.prototype = {
 	RegionDefinition : RegionDefinition,
+
+	$copy : function () {
+		return new Region(this.language, this.hash.$copy());
+	},
 
 	sort_function : function (a, b) { return a.start.length - b.start.length; },
 
@@ -72,7 +76,7 @@ Region.prototype = {
 			this.contained_null_regions.push(region);
 		} else {
 			if (this.global_null_region) {
-				throw Error("Overwritten global null region.");
+				throw new Error("Overwritten global null region.");
 			}
 			this.global_null_region = region;
 		}

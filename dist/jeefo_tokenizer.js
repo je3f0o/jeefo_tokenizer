@@ -1,5 +1,5 @@
 /**
- * jeefo_tokenizer : v0.0.21
+ * jeefo_tokenizer : v0.0.22
  * Author          : je3f0o, <je3f0o@gmail.com>
  * Homepage        : https://github.com/je3f0o/jeefo_tokenizer
  * License         : The MIT License
@@ -10,16 +10,21 @@ jeefo.use(function (jeefo) {
 /* -.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.
 * File Name   : token.js
 * Created at  : 2017-04-08
-* Updated at  : 2017-05-06
+* Updated at  : 2017-05-10
 * Author      : jeefo
 * Purpose     :
 * Description :
 _._._._._._._._._._._._._._._._._._._._._.*/
 
+var JeefoObject,
+	jeefo_tokenizer = jeefo.module("jeefo_tokenizer", ["jeefo_core"]).run("JeefoObject", function (jo) {
+		JeefoObject = jo;
+	});
+
 var Token = function () {};
 Token.prototype = {
 	error : function (message) {
-		var error = new SyntaxError(message);
+		var error          = new SyntaxError(message);
 		error.value        = this.value;
 		error.lineNumber   = this.start.line;
 		error.columnNumber = this.start.column;
@@ -36,7 +41,7 @@ Token.prototype = {
 /* -.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.
 * File Name   : region.js
 * Created at  : 2017-04-08
-* Updated at  : 2017-05-07
+* Updated at  : 2017-05-10
 * Author      : jeefo
 * Purpose     :
 * Description :
@@ -73,14 +78,18 @@ RegionDefinition.prototype = {
 	},
 };
 
-var Region = function (language) {
-	this.hash                   = {};
+var Region = function (language, hash) {
+	this.hash                   = hash || new JeefoObject();
 	this.language               = language;
 	this.global_null_regions    = [];
 	this.contained_null_regions = [];
 };
 Region.prototype = {
 	RegionDefinition : RegionDefinition,
+
+	$copy : function () {
+		return new Region(this.language, this.hash.$copy());
+	},
 
 	sort_function : function (a, b) { return a.start.length - b.start.length; },
 
@@ -99,7 +108,7 @@ Region.prototype = {
 			this.contained_null_regions.push(region);
 		} else {
 			if (this.global_null_region) {
-				throw Error("Overwritten global null region.");
+				throw new Error("Overwritten global null region.");
 			}
 			this.global_null_region = region;
 		}

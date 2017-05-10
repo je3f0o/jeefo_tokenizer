@@ -1,7 +1,7 @@
 /* -.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.
 * File Name   : token.js
 * Created at  : 2017-04-08
-* Updated at  : 2017-05-06
+* Updated at  : 2017-05-10
 * Author      : jeefo
 * Purpose     :
 * Description :
@@ -15,10 +15,15 @@ _._._._._._._._._._._._._._._._._._._._._.*/
 
 //ignore:end
 
+var JeefoObject,
+	jeefo_tokenizer = jeefo.module("jeefo_tokenizer", ["jeefo_core"]).run("JeefoObject", function (jo) {
+		JeefoObject = jo;
+	});
+
 var Token = function () {};
 Token.prototype = {
 	error : function (message) {
-		var error = new SyntaxError(message);
+		var error          = new SyntaxError(message);
 		error.value        = this.value;
 		error.lineNumber   = this.start.line;
 		error.columnNumber = this.start.column;
