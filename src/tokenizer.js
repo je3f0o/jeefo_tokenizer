@@ -1,7 +1,7 @@
 /* -.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.
 * File Name   : tokenizer.js
 * Created at  : 2017-05-10
-* Updated at  : 2017-05-11
+* Updated at  : 2017-05-23
 * Author      : jeefo
 * Purpose     :
 * Description :
@@ -15,10 +15,8 @@ _._._._._._._._._._._._._._._._._._._._._.*/
 // ignore:end
 
 var Tokenizer = function (language, regions) {
-	this.regions                = regions || new this.Regions();
-	this.language               = language;
-	this.global_null_regions    = [];
-	this.contained_null_regions = [];
+	this.regions  = regions || new this.Regions();
+	this.language = language;
 };
 
 // Prototypes {{{1
@@ -28,8 +26,8 @@ Tokenizer.prototype = {
 	StringStream  : StringStream,
 	LexicalParser : LexicalParser,
 
-	inherit : function (language) {
-		return new this.Tokenizer(language, this.regions.$copy());
+	copy : function () {
+		return new this.Tokenizer(this.language, this.regions.copy());
 	},
 
 	parse : function (source) {

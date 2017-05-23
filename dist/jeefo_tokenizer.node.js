@@ -4,7 +4,7 @@
 module.exports = function (jeefo) {
 
 /**
- * jeefo_tokenizer : v0.0.24
+ * jeefo_tokenizer : v0.0.25
  * Author          : je3f0o, <je3f0o@gmail.com>
  * Homepage        : https://github.com/je3f0o/jeefo_tokenizer
  * License         : The MIT License
@@ -44,9 +44,9 @@ Token.prototype = {
 };
 
 /* -.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.
-* File Name   : region.js
+* File Name   : regions.js
 * Created at  : 2017-04-08
-* Updated at  : 2017-05-10
+* Updated at  : 2017-05-23
 * Author      : jeefo
 * Purpose     :
 * Description :
@@ -84,18 +84,35 @@ RegionDefinition.prototype = {
 	},
 };
 
-var Regions = function (hash) {
-	this.hash                   = hash || new JeefoObject();
-	this.global_null_regions    = [];
-	this.contained_null_regions = [];
+var Regions = function (other) {
+	if (other) {
+		this.hash = other.hash.$copy();
+
+		var null_regions           = this.global_null_regions    = new this.Array(other.global_null_regions.length),
+			contained_null_regions = this.contained_null_regions = new this.Array(other.contained_null_regions.length),
+			i = null_regions.length - 1;
+
+		for (; i >= 0; --i) {
+			null_regions[i] = other.global_null_regions[i];
+		}
+
+		for (i = contained_null_regions.length - 1; i >= 0; --i) {
+			contained_null_regions[i] = other.contained_null_regions[i];
+		}
+	} else {
+		this.hash                   = new JeefoObject();
+		this.global_null_regions    = [];
+		this.contained_null_regions = [];
+	}
 };
 
 Regions.prototype = {
+	Array            : Array,
 	Regions          : Regions,
 	RegionDefinition : RegionDefinition,
 
-	$copy : function () {
-		return new this.Regions(this.hash.$copy());
+	copy : function () {
+		return new this.Regions(this);
 	},
 
 	sort_function : function (a, b) { return a.start.length - b.start.length; },
@@ -577,17 +594,15 @@ make_token : function (type, name) {
 /* -.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.
 * File Name   : tokenizer.js
 * Created at  : 2017-05-10
-* Updated at  : 2017-05-11
+* Updated at  : 2017-05-23
 * Author      : jeefo
 * Purpose     :
 * Description :
 _._._._._._._._._._._._._._._._._._._._._.*/
 
 var Tokenizer = function (language, regions) {
-	this.regions                = regions || new this.Regions();
-	this.language               = language;
-	this.global_null_regions    = [];
-	this.contained_null_regions = [];
+	this.regions  = regions || new this.Regions();
+	this.language = language;
 };
 
 // Prototypes {{{1
@@ -597,8 +612,8 @@ Tokenizer.prototype = {
 	StringStream  : StringStream,
 	LexicalParser : LexicalParser,
 
-	inherit : function (language) {
-		return new this.Tokenizer(language, this.regions.$copy());
+	copy : function () {
+		return new this.Tokenizer(this.language, this.regions.copy());
 	},
 
 	parse : function (source) {
