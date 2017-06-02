@@ -1,7 +1,7 @@
 /* -.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.
 * File Name   : string_stream.js
 * Created at  : 2017-04-07
-* Updated at  : 2017-05-06
+* Updated at  : 2017-06-02
 * Author      : jeefo
 * Purpose     :
 * Description :
@@ -9,28 +9,80 @@ _._._._._._._._._._._._._._._._._._._._._.*/
 //ignore:start
 "use strict";
 
-/* global */
-/* exported */
+/* globals jeefo */
+/* exported StringStream, jeefo_tokenizer */
 /* exported */
 
 //ignore:end
 
-var StringStream = function (string) {
-	this.string        = string;
-	this.current_index = 0;
+var assign,
+	JeefoObject,
+	jeefo_tokenizer = jeefo.module("jeefo_tokenizer", ["jeefo_core"]).
+	run(["object.assign", "JeefoObject"], function (a, jo) {
+		assign      = a;
+		JeefoObject = jo;
+	});
+
+var StringStream = function (string, tab_space) {
+	this.string    = string;
+	this.cursor    = { line : 1, column : 0, virtual_column : 0, index : -1 };
+	this.tab_space = tab_space || 4;
 };
+
 StringStream.prototype = {
+	assign : assign,
+
 	peek : function (index) {
 		return this.string.charAt(index);
 	},
-	seek : function (offset, length) {
-		return this.string.substring(offset, offset + length);
+	seek : function (offset, end) {
+		return this.string.substring(offset, end || this.cursor.index);
 	},
-	next : function () {
-		return this.peek( ++this.current_index );
+	next : function (skip_whitespace) {
+		var current_character = this.string.charAt( ++this.cursor.index );
+
+		if (skip_whitespace) {
+			while (current_character && current_character <= ' ') {
+				this.update_cursor(current_character);
+				current_character = this.string.charAt( ++this.cursor.index );
+			}
+			this.update_cursor(current_character);
+		} else {
+			this.update_cursor(current_character);
+		}
+
+		if (! current_character) { return null; }
+
+		return current_character;
 	},
 	current : function () {
-		return this.peek(this.current_index);
+		return this.string.charAt( this.cursor.index );
+	},
+	update_cursor : function (current_character) {
+		if (current_character === '\r' || current_character === '\n') {
+			this.cursor.line          += 1;
+			this.cursor.column         = 0;
+			this.cursor.virtual_column = 0;
+		} else {
+			this.cursor.column         += 1;
+			this.cursor.virtual_column += current_character === '\t' ? this.tab_space : 1;
+		}
+	},
+	move_right : function (length) {
+		this.cursor.index          += length;
+		this.cursor.column         += length;
+		this.cursor.virtual_column += length;
+	},
+	get_cursor : function () {
+		return this.assign({}, this.cursor);
+	},
+	end_cursor : function () {
+		return {
+			line           : this.cursor.line,
+			index          : this.cursor.index + 1,
+			column         : this.cursor.column + 1,
+			virtual_column : this.cursor.virtual_column + 1,
+		};
 	},
 };
 

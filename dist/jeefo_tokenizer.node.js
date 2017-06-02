@@ -4,7 +4,7 @@
 module.exports = function (jeefo) {
 
 /**
- * jeefo_tokenizer : v0.0.25
+ * jeefo_tokenizer : v0.0.26
  * Author          : je3f0o, <je3f0o@gmail.com>
  * Homepage        : https://github.com/je3f0o/jeefo_tokenizer
  * License         : The MIT License
@@ -13,626 +13,171 @@ module.exports = function (jeefo) {
 jeefo.use(function (jeefo) {
 
 /* -.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.
-* File Name   : token.js
-* Created at  : 2017-04-08
-* Updated at  : 2017-05-10
+* File Name   : string_stream.js
+* Created at  : 2017-04-07
+* Updated at  : 2017-06-02
 * Author      : jeefo
 * Purpose     :
 * Description :
 _._._._._._._._._._._._._._._._._._._._._.*/
 
-var JeefoObject,
-	jeefo_tokenizer = jeefo.module("jeefo_tokenizer", ["jeefo_core"]).run("JeefoObject", function (jo) {
+var assign,
+	JeefoObject,
+	jeefo_tokenizer = jeefo.module("jeefo_tokenizer", ["jeefo_core"]).
+	run(["object.assign", "JeefoObject"], function (a, jo) {
+		assign      = a;
 		JeefoObject = jo;
 	});
 
-var Token = function () {};
-Token.prototype = {
-	error : function (message) {
-		var error          = new SyntaxError(message);
-		error.value        = this.value;
-		error.lineNumber   = this.start.line;
-		error.columnNumber = this.start.column;
-		throw error;
-	},
-	error_unexpected_type : function () {
-		this.error("Unexpected " + this.type);
-	},
-	error_unexpected_token : function () {
-		this.error("Unexpected token");
-	},
+var StringStream = function (string, tab_space) {
+	this.string    = string;
+	this.cursor    = { line : 1, column : 0, virtual_column : 0, index : -1 };
+	this.tab_space = tab_space || 4;
 };
 
-/* -.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.
-* File Name   : regions.js
-* Created at  : 2017-04-08
-* Updated at  : 2017-05-23
-* Author      : jeefo
-* Purpose     :
-* Description :
-_._._._._._._._._._._._._._._._._._._._._.*/
-
-var RegionDefinition = function (definition) {
-	this.type  = definition.type;
-	this.name  = definition.name || definition.type;
-	this.start = definition.start;
-	this.end   = definition.end;
-
-	if (definition.skip)        { this.skip        = definition.skip;        }
-	if (definition.until)       { this.until       = definition.until;       }
-	if (definition.keepend)     { this.keepend     = definition.keepend;     }
-	if (definition.contains)    { this.contains    = definition.contains;    }
-	if (definition.contained)   { this.contained   = definition.contained;   }
-	if (definition.escape_char) { this.escape_char = definition.escape_char; }
-
-	if (definition.contains) { this.contains_chars = this.find_special_characters(definition.contains); }
-};
-
-RegionDefinition.prototype = {
-	RegionDefinition : RegionDefinition,
-
-	copy : function () {
-		return new this.RegionDefinition(this);
-	},
-
-	find_special_characters : function (container) {
-		for (var i = container.length - 1; i >= 0; --i) {
-			if (container[i].type === "SpecialCharacter") {
-				return container[i].chars.join('');
-			}
-		}
-	},
-};
-
-var Regions = function (other) {
-	if (other) {
-		this.hash = other.hash.$copy();
-
-		var null_regions           = this.global_null_regions    = new this.Array(other.global_null_regions.length),
-			contained_null_regions = this.contained_null_regions = new this.Array(other.contained_null_regions.length),
-			i = null_regions.length - 1;
-
-		for (; i >= 0; --i) {
-			null_regions[i] = other.global_null_regions[i];
-		}
-
-		for (i = contained_null_regions.length - 1; i >= 0; --i) {
-			contained_null_regions[i] = other.contained_null_regions[i];
-		}
-	} else {
-		this.hash                   = new JeefoObject();
-		this.global_null_regions    = [];
-		this.contained_null_regions = [];
-	}
-};
-
-Regions.prototype = {
-	Array            : Array,
-	Regions          : Regions,
-	RegionDefinition : RegionDefinition,
-
-	copy : function () {
-		return new this.Regions(this);
-	},
-
-	sort_function : function (a, b) { return a.start.length - b.start.length; },
-
-	// Register {{{1
-	register : function (region) {
-		region = new this.RegionDefinition(region);
-
-		if (region.start) {
-			if (this.hash[region.start[0]]) {
-				this.hash[region.start[0]].push(region);
-
-				this.hash[region.start[0]].sort(this.sort_function);
-			} else {
-				this.hash[region.start[0]] = [region];
-			}
-		} else if (region.contained) {
-			this.contained_null_regions.push(region);
-		} else {
-			if (this.global_null_region) {
-				throw new Error("Overwritten global null region.");
-			}
-			this.global_null_region = region;
-		}
-
-		return this;
-	},
-
-	// Find {{{1
-	find : function (parent, streamer) {
-		var i         = 0,
-			container = this.hash[streamer.current()],
-			start, j, k;
-		
-		// Has parent {{{2
-		if (parent && parent.contains) {
-
-			// Search for contained regions {{{3
-			if (container) {
-				CONTAINER:
-				for (i = container.length - 1; i >= 0; --i) {
-					for (j = parent.contains.length - 1; j >= 0; --j) {
-						if (container[i].type !== parent.contains[j].type) {
-							continue;
-						}
-
-						for (start = container[i].start, k = start.length - 1; k >= 1; --k) {
-							if (streamer.peek(streamer.current_index + k) !== start.charAt(k)) {
-								continue CONTAINER;
-							}
-						}
-
-						return container[i].copy();
-					}
-				}
-			}
-
-			// Looking for null regions {{{3
-			for (i = parent.contains.length - 1; i >= 0; --i) {
-				for (j = this.contained_null_regions.length - 1; j >= 0; --j) {
-					if (this.contained_null_regions[j].type === parent.contains[i].type) {
-						return this.contained_null_regions[j].copy();
-					}
-				}
-			}
-			// }}}3
-
-		// No parent {{{2
-		// It means lookup for only global regions
-		} else {
-
-			// Has container {{{3
-			if (container) {
-
-				NO_PARENT_CONTAINER:
-				for (i = container.length - 1; i >= 0; --i) {
-					if (container[i].contained) {
-						continue;
-					}
-
-					for (start = container[i].start, k = start.length - 1; k >= 1; --k) {
-						if (streamer.peek(streamer.current_index + k) !== start.charAt(k)) {
-							continue NO_PARENT_CONTAINER;
-						}
-					}
-
-					return container[i].copy();
-				}
-			}
-		
-			// Finally {{{3
-			if (this.global_null_region) {
-				return this.global_null_region.copy();
-			}
-			// }}}3
-
-		}
-		// }}}2
-	},
-	// }}}1
-};
-
-/* -.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.
-* File Name   : string_stream.js
-* Created at  : 2017-04-07
-* Updated at  : 2017-05-06
-* Author      : jeefo
-* Purpose     :
-* Description :
-_._._._._._._._._._._._._._._._._._._._._.*/
-
-var StringStream = function (string) {
-	this.string        = string;
-	this.current_index = 0;
-};
 StringStream.prototype = {
+	assign : assign,
+
 	peek : function (index) {
 		return this.string.charAt(index);
 	},
-	seek : function (offset, length) {
-		return this.string.substring(offset, offset + length);
+	seek : function (offset, end) {
+		return this.string.substring(offset, end || this.cursor.index);
 	},
-	next : function () {
-		return this.peek( ++this.current_index );
+	next : function (skip_whitespace) {
+		var current_character = this.string.charAt( ++this.cursor.index );
+
+		if (skip_whitespace) {
+			while (current_character && current_character <= ' ') {
+				this.update_cursor(current_character);
+				current_character = this.string.charAt( ++this.cursor.index );
+			}
+			this.update_cursor(current_character);
+		} else {
+			this.update_cursor(current_character);
+		}
+
+		if (! current_character) { return null; }
+
+		return current_character;
 	},
 	current : function () {
-		return this.peek(this.current_index);
+		return this.string.charAt( this.cursor.index );
+	},
+	update_cursor : function (current_character) {
+		if (current_character === '\r' || current_character === '\n') {
+			this.cursor.line          += 1;
+			this.cursor.column         = 0;
+			this.cursor.virtual_column = 0;
+		} else {
+			this.cursor.column         += 1;
+			this.cursor.virtual_column += current_character === '\t' ? this.tab_space : 1;
+		}
+	},
+	move_right : function (length) {
+		this.cursor.index          += length;
+		this.cursor.column         += length;
+		this.cursor.virtual_column += length;
+	},
+	get_cursor : function () {
+		return this.assign({}, this.cursor);
+	},
+	end_cursor : function () {
+		return {
+			line           : this.cursor.line,
+			index          : this.cursor.index + 1,
+			column         : this.cursor.column + 1,
+			virtual_column : this.cursor.virtual_column + 1,
+		};
 	},
 };
 
 /* -.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.
-* File Name   : token_parser.js
+* File Name   : lexical_parser.js
 * Created at  : 2017-04-08
-* Updated at  : 2017-05-10
+* Updated at  : 2017-06-03
 * Author      : jeefo
 * Purpose     :
 * Description :
 _._._._._._._._._._._._._._._._._._._._._.*/
 
-var LexicalParser = function () {
-	this.start  = { line : 1, column : 1 };
-	this.lines  = [{ number : 1, index : 0 }];
-	this.stack  = [];
-	this.tokens = [];
+var Parser = function (parser) {
+	this.Token = function () {};
+	this.assign(this.Token.prototype, this.default_protos, parser.protos);
+	if (parser.is) {
+		this.is = parser.is;
+	}
 };
-LexicalParser.prototype = {
-
-is_array : Array.isArray,
-
-// Main parser {{{1
-parse : function (streamer, regions) {
-	var current_character = streamer.current(), region;
-
-	this.streamer = streamer;
-
-	while (current_character) {
-		if (this.current_region) {
-			if (current_character === this.current_region.escape_char) {
-				current_character = streamer.next();
-				continue;
-			} else if (this.region_end(this.current_region)) {
-				this.current_token  = this.current_token.parent;
-				this.current_region = this.current_region.parent;
-
-				current_character = streamer.next();
-				continue;
-			}
-		}
-
-		// Region {{{2
-		region = regions.find(this.current_region, streamer);
-		if (region) {
-			this.parse_region(region);
-
-			if (region.keepend) {
-				this.stack.push({
-					token  : this.current_token,
-					region : region,
-				});
-			}
-
-		// White space {{{2
-		} else if (current_character <= ' ') {
-			this.handle_new_line(current_character);
-
-		// Number {{{2
-		} else if (current_character >= '0' && current_character <= '9') {
-			this.parse_number();
-
-		// Identifier {{{2
-		} else if (this.SPECIAL_CHARACTERS.indexOf(current_character) === -1) {
-			this.parse_identifier();
-
-		// Special character {{{2
-		} else {
-			this.parse_special_character();
-		}
-		// }}}2
-
-		current_character = streamer.next();
-	}
-
-	return this.tokens;
-},
-
-// Parse number {{{1
-parse_number : function () {
-	var streamer = this.streamer, current_character;
-
-	this.prepare_new_token(streamer.current_index);
-
-	// jshint curly : false
-	for (current_character = streamer.next(); current_character >= '0' && current_character <= '9' ;
-		current_character = streamer.next());
-	// jshint curly : true
-
-	this.add_token( this.make_token("Number") );
-	this.streamer.current_index -= 1;
-},
-
-// Parse Identifier {{{1
-
-SPECIAL_CHARACTERS : [
-	',', '.', ';', ':',
-	'<', '>', '~', '`',
-	'!', '@', '#', '|', 
-	'%', '^', '&', '*',
-	'(', ')', '-', '+',
-	'=', '[', ']', '/',
-	'?', '"', '{', '}',
-	'_', "'", '\\',
-].join(''),
-
-parse_identifier : function () {
-	var streamer = this.streamer, current_character;
-
-	this.prepare_new_token(streamer.current_index);
-
-	// jshint curly : false
-	for (current_character = streamer.next(); // initialization terminator
-		current_character > ' ' && this.SPECIAL_CHARACTERS.indexOf(current_character) === -1;
-		current_character = streamer.next());
-	// jshint curly : true
-
-	this.add_token( this.make_token("Identifier") );
-	streamer.current_index -= 1;
-},
-
-// Parse region {{{1
-parse_region : function (region) {
-	var streamer = this.streamer,
-		i, is_matched, current_character, current_token;
-
-	this.prepare_new_token(streamer.current_index);
-
-	if (region.start) {
-		streamer.current_index += region.start.length;
-	}
-
-	if (region.contains) {
-		current_token          = this.make_token(region.type, region.name);
-		current_token.children = [];
-
-		if (this.current_token) {
-			region.parent        = this.current_region;
-			current_token.parent = this.current_token;
-			this.current_token.children.push(current_token);
-		} else {
-			this.tokens.push( current_token );
-		}
-
-		this.current_token  = current_token;
-		this.current_region = region;
-
-		if (region.start) {
-			streamer.current_index -= 1;
-		}
-		return;
-	}
-
-	current_character = streamer.current();
-
-	while (current_character) {
-		this.handle_new_line(current_character);
-
-		// escape handler
-		if (current_character === region.escape_char) {
-			streamer.current_index += 2;
-			current_character = streamer.current();
-			continue;
-		}
-
-		// skip handler
-		if (region.skip && current_character === region.skip.charAt(0)) {
-			for (i = 1, is_matched = true; i < region.skip.length; ++i) {
-				if (streamer.peek(streamer.current_index + i) !== region.skip.charAt(i)) {
-					is_matched = false;
-					break;
-				}
-			}
-
-			if (is_matched) {
-				streamer.current_index += region.skip.length;
-				current_character = streamer.current();
-				continue;
-			}
-		}
-
-		if (this.region_end(region, true)) {
-			return;
-		}
-
-		current_character = streamer.next();
-	}
-},
-
-// Parse special character {{{1
-parse_special_character : function () {
-	if (this.current_region &&
-		(! this.current_region.contains_chars || this.current_region.contains_chars.indexOf(this.streamer.current()) === -1)) {
-		this.prepare_new_token(this.streamer.current_index);
-		this.streamer.current_index += 1;
-		this.make_token("SpecialCharacter").error_unexpected_token();
-	}
-
-	this.prepare_new_token(this.streamer.current_index);
-	this.streamer.current_index += 1;
-
-	this.add_token( this.make_token("SpecialCharacter") );
-	this.streamer.current_index -= 1;
-},
-
-// Check end token {{{1
-region_end : function (region, to_add) {
-	var i = 0;
-	if (this.is_array(region.end)) {
-		for (; i < region.end.length; ++i) {
-			if (this.check_end_token(region, region.end[i], to_add)) {
-				this.finallzie_region(region);
-				return true;
-			}
-		}
-	}
-
-	if (this.check_end_token(region, region.end, to_add)) {
-		this.finallzie_region(region);
-		return true;
-	}
-
-	if (this.region_end_stack(region, to_add)) {
-		return true;
-	}
-},
-
-finallzie_region : function (region) {
-	for (var i = 0; i < this.stack.length; ++i) {
-		if (this.stack[i].region === region) {
-			this.current_token  = this.stack[i].token;
-			this.current_region = this.stack[i].region;
-			this.stack.splice(i, this.stack.length);
-		}
-	}
-},
-
-region_end_stack : function (region, to_add) {
-	for (var i = this.stack.length - 1, j; i >= 0; --i) {
-		if (this.is_array(this.stack[i].region.end)) {
-			for (j = 0; j < this.stack[i].region.end.length; ++j) {
-				if (this.check_end_token(region, this.stack[i].region.end[j], to_add)) {
-					this.finallzie_region(this.stack[i].region);
-					return true;
-				}
-			}
-		} else if (this.check_end_token(region, this.stack[i].region.end, to_add)) {
-			this.finallzie_region(this.stack[i].region);
-			return true;
-		}
-	}
-},
-
-check_end_token : function (region, end, to_add) {
-	var i        = 1,
-		streamer = this.streamer;
-
-	if (streamer.current() === end.charAt(0)) {
-		for (; i < end.length; ++i) {
-			if (streamer.peek(streamer.current_index + i) !== end.charAt(i)) {
-				return false;
-			}
-		}
-
-		if (! region.until) {
-			streamer.current_index += end.length;
-		}
-
-		if (to_add) {
-			var token = this.make_token(region.type, region.name);
-			this.set_value(token, region.start ? region.start.length : 0, region.until ? 0 : end.length);
-
-			this.add_token(token);
-		} else {
-			this.set_end(this.current_token);
-			this.set_value(this.current_token, region.start ? region.start.length : 0, region.until ? 0 : end.length);
-		}
-
-		streamer.current_index -= 1;
-
-		return true;
-	}
-},
-// }}}1
-
-handle_new_line : function (current_character) {
-	if (current_character === '\r' || current_character === '\n') {
-		this.new_line();
-	}
-},
-
-new_line : function () {
-	this.lines.push({
-		number : (this.lines.length + 1),
-		index  : (this.streamer.current_index + 1),
-	});
-},
-
-// Set value without surrounding
-set_value : function (token, start_length, end_length) {
-	token.value = this.streamer.seek(
-		token.start.index + start_length,
-		(token.end.index - token.start.index - start_length - end_length)
-	);
-},
-
-set_end : function (token) {
-	token.end = {
-		line   : this.lines.length,
-		column : (this.streamer.current_index - this.lines[this.lines.length - 1].index),
-		index  : this.streamer.current_index,
-	};
-},
-
-prepare_new_token : function (current_index) {
-	this.start = {
-		line   : this.lines.length,
-		column : (current_index - this.lines[this.lines.length - 1].index) + 1,
-		index  : current_index
-	};
-},
-
-add_token : function (token) {
-	if (this.current_token) {
-		this.current_token.children.push(token);
-	} else {
-		this.tokens.push(token);
-	}
-},
-
-make_token : function (type, name) {
-	var offset = this.start.index,
-		length = this.streamer.current_index - this.start.index,
-		token  = new Token();
-
-	token.type  = type;
-	token.name  = name || type;
-	token.value = this.streamer.seek(offset, length);
-	token.start = this.start;
-	token.end   = {
-		line           : this.lines.length,
-		column         : (this.streamer.current_index - this.lines[this.lines.length - 1].index) + 1,
-		virtual_column : this.lines.column,
-		index          : this.streamer.current_index
-	};
-
-	return token;
-},
-
+Parser.prototype = {
+	assign         : assign,
+	default_protos : {
+		type       : "UndefinedToken",
+		precedence : 0,
+	},
 };
 
-/* -.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.
-* File Name   : tokenizer.js
-* Created at  : 2017-05-10
-* Updated at  : 2017-05-23
-* Author      : jeefo
-* Purpose     :
-* Description :
-_._._._._._._._._._._._._._._._._._._._._.*/
-
-var Tokenizer = function (language, regions) {
-	this.regions  = regions || new this.Regions();
-	this.language = language;
+// Tokenizer {{{1
+// Constructor {{{2
+var Tokenizer = function (parsers) {
+	this.parsers = parsers || [];
 };
-
-// Prototypes {{{1
+// Prototypes {{{2
 Tokenizer.prototype = {
-	Regions       : Regions,
-	Tokenizer     : Tokenizer,
-	StringStream  : StringStream,
-	LexicalParser : LexicalParser,
 
-	copy : function () {
-		return new this.Tokenizer(this.language, this.regions.copy());
-	},
+Parser       : Parser,
+Tokenizer    : Tokenizer,
+StringStream : StringStream,
 
-	parse : function (source) {
-		var lexical  = new this.LexicalParser(),
-			streamer = new this.StringStream(source);
+sort_handler : function (a, b) {
+	return a.Token.prototype.precedence - b.Token.prototype.precedence;
+},
 
-		return lexical.parse(streamer, this.regions);
-	},
+copy : function () {
+	var i = 0, parsers = [];
+	for (; i < this.parsers.length; ++i) {
+		parsers[i] = this.parsers[i];
+	}
+	return new this.Tokenizer(parsers);
+},
+
+// Init {{{3
+init : function (source, tab_space) {
+	this.streamer = new this.StringStream(source, tab_space);
+},
+
+// Next {{{3
+next : function () {
+	var current_character = this.streamer.next(true);
+
+	if (! current_character) { return null; }
+
+	for (var i = this.parsers.length - 1; i >= 0; --i) {
+		if (this.parsers[i].is && ! this.parsers[i].is(current_character, this.streamer)) { continue; }
+
+		var token = new this.parsers[i].Token();
+		token.initialize(current_character, this.streamer);
+
+		return token;
+	}
+},
+
+// Register {{{3
+register : function (parser) {
+	parser = new this.Parser(parser);
+
+	this.parsers.push(parser);
+	this.parsers.sort(this.sort_handler);
+
+	return this;
+},
+// }}}3
+
 };
+// }}}2
 // }}}1
 
-jeefo_tokenizer.namespace("tokenizer.Token", function () {
-	return Token;
-}).
-namespace("tokenizer.Regions", function () {
-	return Regions;
-}).
-namespace("tokenizer.LexicalParser", function () {
-	return LexicalParser;
+jeefo_tokenizer.namespace("tokenizer.StringStream", function () {
+	return StringStream;
 }).
 namespace("tokenizer.Tokenizer", function () {
 	return Tokenizer;
