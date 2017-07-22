@@ -16,11 +16,12 @@ _._._._._._._._._._._._._._._._._._._._._.*/
 
 var assign,
 	JeefoObject,
-	jeefo_tokenizer = jeefo.module("jeefo.tokenizer", ["jeefo.core"]).
-	run(["object.assign", "JeefoObject"], function (a, jo) {
-		assign      = a;
-		JeefoObject = jo;
-	});
+	jeefo_tokenizer = jeefo.module("jeefo.tokenizer", ["jeefo.core"]);
+
+jeefo_tokenizer.run(["object.assign", "JeefoObject"], function (a, jo) {
+	assign      = a;
+	JeefoObject = jo;
+});
 
 var StringStream = function (string, tab_space) {
 	this.string    = string;
