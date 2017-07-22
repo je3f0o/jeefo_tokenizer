@@ -238,19 +238,25 @@ jeefo@^0.0.12:
   version "0.0.12"
   resolved "https://registry.yarnpkg.com/jeefo/-/jeefo-0.0.12.tgz#61299e69c7f6c1a4a74ac5dc53bdecd7f0c69b01"
 
-jeefo@^0.0.13:
-  version "0.0.13"
-  resolved "https://registry.yarnpkg.com/jeefo/-/jeefo-0.0.13.tgz#6174a3e47a3f90175969950c49f0eb48503caa41"
+jeefo@^0.0.24:
+  version "0.0.24"
+  resolved "https://registry.yarnpkg.com/jeefo/-/jeefo-0.0.24.tgz#7bd2a044b2543228d2ac29c91792e54bf9f4f322"
 
-jeefo@^0.0.18:
-  version "0.0.18"
-  resolved "https://registry.yarnpkg.com/jeefo/-/jeefo-0.0.18.tgz#9990035d4c7cc8058f08908004db3688fb3a2961"
-
-jeefo_core@^0.0.12:
-  version "0.0.12"
-  resolved "https://registry.yarnpkg.com/jeefo_core/-/jeefo_core-0.0.12.tgz#2c553c393824cfc7119fc74d700f5a4e1b7757ea"
+jeefo@^0.0.25:
+  version "0.0.25"
+  resolved "https://registry.yarnpkg.com/jeefo/-/jeefo-0.0.25.tgz#958a93853f50a4d2ac2177f420c898f20ccb1bb0"
   dependencies:
-    jeefo "^0.0.13"
+    jeefo "^0.0.24"
+
+jeefo@^0.0.26:
+  version "0.0.26"
+  resolved "https://registry.yarnpkg.com/jeefo/-/jeefo-0.0.26.tgz#ef3be96d7d4ffded08fb108635ae4b291a5f017a"
+
+jeefo_core@^0.0.16:
+  version "0.0.16"
+  resolved "https://registry.yarnpkg.com/jeefo_core/-/jeefo_core-0.0.16.tgz#aeb2f53b6ab10e24c5db6759abff529e3ce754a6"
+  dependencies:
+    jeefo "^0.0.25"
 
 jeefo_core@^0.0.9:
   version "0.0.9"

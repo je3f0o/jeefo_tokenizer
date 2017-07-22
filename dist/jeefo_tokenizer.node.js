@@ -4,7 +4,7 @@
 module.exports = function (jeefo) {
 
 /**
- * jeefo_tokenizer : v0.0.26
+ * jeefo_tokenizer : v0.0.27
  * Author          : je3f0o, <je3f0o@gmail.com>
  * Homepage        : https://github.com/je3f0o/jeefo_tokenizer
  * License         : The MIT License
@@ -15,7 +15,7 @@ jeefo.use(function (jeefo) {
 /* -.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.
 * File Name   : string_stream.js
 * Created at  : 2017-04-07
-* Updated at  : 2017-06-02
+* Updated at  : 2017-07-22
 * Author      : jeefo
 * Purpose     :
 * Description :
@@ -23,7 +23,7 @@ _._._._._._._._._._._._._._._._._._._._._.*/
 
 var assign,
 	JeefoObject,
-	jeefo_tokenizer = jeefo.module("jeefo_tokenizer", ["jeefo_core"]).
+	jeefo_tokenizer = jeefo.module("jeefo.tokenizer", ["jeefo.core"]).
 	run(["object.assign", "JeefoObject"], function (a, jo) {
 		assign      = a;
 		JeefoObject = jo;
