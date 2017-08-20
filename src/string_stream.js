@@ -1,27 +1,19 @@
 /* -.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.
 * File Name   : string_stream.js
 * Created at  : 2017-04-07
-* Updated at  : 2017-07-22
+* Updated at  : 2017-08-16
 * Author      : jeefo
 * Purpose     :
 * Description :
 _._._._._._._._._._._._._._._._._._._._._.*/
 //ignore:start
 
-/* globals jeefo */
-/* exported StringStream, jeefo_tokenizer */
+/* globals */
 /* exported */
 
 //ignore:end
 
-var assign,
-	JeefoObject,
-	jeefo_tokenizer = jeefo.module("jeefo.tokenizer", ["jeefo.core"]);
-
-jeefo_tokenizer.run(["object.assign", "JeefoObject"], function (a, jo) {
-	assign      = a;
-	JeefoObject = jo;
-});
+var assign = require("jeefo_utils/object/assign");
 
 var StringStream = function (string, tab_space) {
 	this.string    = string;
@@ -86,6 +78,4 @@ StringStream.prototype = {
 	},
 };
 
-//ignore:start
 module.exports = StringStream;
-//ignore:end
