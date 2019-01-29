@@ -1,96 +1,70 @@
 /* -.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.
 * File Name   : index.js
 * Created at  : 2017-04-12
-* Updated at  : 2017-08-20
+* Updated at  : 2019-01-29
 * Author      : jeefo
 * Purpose     :
 * Description :
 _._._._._._._._._._._._._._._._._._._._._.*/
 //ignore:start
+"use strict";
 
 /* globals */
 /* exported */
 
 //ignore:end
 
-/*
-var SPECIAL_CHARACTERS = [
-	'.', ',',
-	'/', '?',
-	';', ':',
-	"'", '"',
-	'`', '~',
-	'-', '_',
-	'=', '+',
-	'\\', '|', 
-	'(', ')',
-	'[', ']',
-	'{', '}',
-	'<', '>',
-	'!', '@', '#', '$', '%', '^', '&', '*',
-].join('');
-*/
+const StringStream    = require("./src/string_stream"),
+      TokenDefinition = require("./src/token_definition");
 
-//ignore:end
+module.exports = class Tokenizer {
+    constructor () {
+        this.streamer          = new StringStream('');
+        this.token_definitions = [];
+    }
 
-var Parser       = require("./src/parser"),
-	StringStream = require("./src/string_stream"),
-	sort_handler = (a, b) => {
-		return a.Token.prototype.precedence - b.Token.prototype.precedence;
-	};
+    init (source_code, tab_space) {
+        this.streamer = new StringStream(source_code, tab_space);
+    }
 
-var Tokenizer = function (parsers) {
-	this.parsers = [];
+    clone () {
+        const clone = new Tokenizer();
 
-	if (parsers) {
-		var i = parsers.length;
-		while (i--) {
-			this.parsers[i] = parsers[i];
-		}
-	}
+        clone.token_definitions = this.token_definitions.map(token_definition => {
+            return new TokenDefinition({
+                is         : token_definition.is,
+                initialize : token_definition.initialize,
+                prototype  : token_definition.Token.prototype
+            });
+        });
+
+        clone.cursor_positions_stack = this.cursor_positions_stack.map(cursor_position => Object.assign({}, cursor_position));
+
+        return clone;
+    }
+
+    get_next_token () {
+        const current_character = this.streamer.get_next_character(true);
+
+        if (current_character === null) { return null; }
+
+        let i = this.token_definitions.length;
+        while (i--) {
+            if (this.token_definitions[i].is(current_character, this.streamer)) {
+                const token = new this.token_definitions[i].Token();
+                this.token_definitions[i].initialize(token, current_character, this.streamer);
+
+                return token;
+            }
+        }
+
+        throw new SyntaxError("Undefined token");
+    }
+
+    register (token_definition) {
+        this.token_definitions.push(new TokenDefinition(token_definition));
+        this.token_definitions.sort((a, b) => a.Token.prototype.precedence - b.Token.prototype.precedence);
+
+        return this;
+    }
 };
-
-// Prototypes {{{1
-Tokenizer.prototype = {
-
-// Init {{{2
-init : function (source, tab_space) {
-	this.streamer = new StringStream(source, tab_space);
-},
-
-// Clone {{{2
-clone : function () {
-	return new Tokenizer(this.parsers);
-},
-
-// Next {{{2
-next : function () {
-	var current_character = this.streamer.next(true);
-
-	if (! current_character) { return null; }
-
-	for (var i = this.parsers.length - 1; i >= 0; --i) {
-		if (this.parsers[i].is && ! this.parsers[i].is(current_character, this.streamer)) { continue; }
-
-		var token = new this.parsers[i].Token();
-		token.initialize(current_character, this.streamer);
-
-		return token;
-	}
-},
-
-// Register {{{2
-register : function (parser) {
-	parser = new Parser(parser);
-
-	this.parsers.push(parser);
-	this.parsers.sort(sort_handler);
-
-	return this;
-},
-// }}}2
-
-};
-// }}}1
-
-module.exports = Tokenizer;

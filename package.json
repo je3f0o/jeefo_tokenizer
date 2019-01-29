@@ -1,6 +1,6 @@
 {
   "name": "jeefo_tokenizer",
-  "version": "0.0.29",
+  "version": "0.0.30",
   "homepage": "https://github.com/je3f0o/jeefo_tokenizer",
   "copyright": "2017",
   "description": "jeefo tokenizer",
@@ -10,9 +10,7 @@
   },
   "license": "MIT",
   "main": "index.js",
-  "scripts": {
-    "build": "node build"
-  },
+  "scripts": {},
   "repository": {
     "type": "git",
     "url": "https://github.com/je3f0o/jeefo_tokenizer.git"
@@ -23,7 +21,5 @@
     "tokenizer"
   ],
   "devDependencies": {},
-  "dependencies": {
-    "jeefo_utils": "^0.0.1"
-  }
+  "dependencies": {}
 }
