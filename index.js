@@ -17,7 +17,7 @@ _._._._._._._._._._._._._._._._._._._._._.*/
 const StringStream    = require("./src/string_stream"),
       TokenDefinition = require("./src/token_definition");
 
-module.exports = class Tokenizer {
+module.exports = class JeefoTokenizer {
     constructor () {
         this.streamer          = new StringStream('');
         this.token_definitions = [];
@@ -28,7 +28,7 @@ module.exports = class Tokenizer {
     }
 
     clone () {
-        const clone = new Tokenizer();
+        const clone = new JeefoTokenizer();
 
         clone.token_definitions = this.token_definitions.map(token_definition => {
             return new TokenDefinition({

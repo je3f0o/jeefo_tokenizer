@@ -35,7 +35,7 @@ module.exports = class StringStream {
         }
 
         this.string                 = string;
-        this.cursor                 = { line : 1, column : 0, virtual_column : 0, index : -1 };
+        this.cursor                 = { index : -1, line : 1, column : 0, virtual_column : 0 };
         this.tab_space              = tab_space || 4;
         this.cursor_positions_stack = [];
     }
@@ -78,8 +78,8 @@ module.exports = class StringStream {
 
 	get_end_cursor () {
 		return {
-			line           : this.cursor.line,
 			index          : this.cursor.index + 1,
+			line           : this.cursor.line,
 			column         : this.cursor.column + 1,
 			virtual_column : this.cursor.virtual_column + 1,
 		};
