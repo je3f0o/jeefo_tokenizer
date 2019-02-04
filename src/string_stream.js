@@ -1,7 +1,7 @@
 /* -.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.
 * File Name   : string_stream.js
 * Created at  : 2017-04-07
-* Updated at  : 2019-01-29
+* Updated at  : 2019-02-05
 * Author      : jeefo
 * Purpose     :
 * Description :
@@ -45,7 +45,11 @@ module.exports = class StringStream {
 	}
 
 	substring_from (offset) {
-		return this.string.substring(offset, this.cursor.index);
+		return this.string.substring(offset, this.cursor.index + 1);
+	}
+
+	substring_from_token (token) {
+		return this.string.substring(token.start.index, token.end.index + 1);
 	}
 
 	get_next_character (skip_whitespace) {
@@ -62,40 +66,42 @@ module.exports = class StringStream {
 		return current_character || null;
 	}
 
-	current_character () {
-		return this.string.charAt( this.cursor.index );
-	}
-
-	move_right (length) {
+	move (length) {
 		this.cursor.index          += length;
 		this.cursor.column         += length;
 		this.cursor.virtual_column += length;
+	}
+
+	get_current_character () {
+		return this.string.charAt( this.cursor.index );
 	}
 
 	get_cursor () {
 		return Object.assign({}, this.cursor);
 	}
 
-	get_end_cursor () {
-		return {
-			index          : this.cursor.index + 1,
-			line           : this.cursor.line,
-			column         : this.cursor.column + 1,
-			virtual_column : this.cursor.virtual_column + 1,
-		};
-	}
-
     save_cursor_position () {
         this.cursor_positions_stack.push(this.get_cursor());
+        if (this.cursor_positions_stack.length === 10) {
+            throw new Error("Exceeded max cursor positions stack");
+        }
     }
 
-    restore_cursor_position () {
-        const last_position = this.cursor_positions_stack.pop();
-
-        if (last_position) {
-            Object.assign(this.cursor, last_position);
+    commit () {
+        if (this.cursor_positions_stack.length) {
+            this.cursor_positions_stack.pop();
         } else {
-            throw new Error("Empty cursor positions stack");
+            throw new Error("Commiting empty cursor positions stack");
+        }
+    }
+
+    rollback () {
+        const last_position = this.cursor_positions_stack.pop();
+        
+        if (last_position) {
+            this.cursor = last_position;
+        } else {
+            throw new Error("Rollback empty cursor positions stack");
         }
     }
 };
