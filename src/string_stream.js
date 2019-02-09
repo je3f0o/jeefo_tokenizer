@@ -1,7 +1,7 @@
 /* -.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.
 * File Name   : string_stream.js
 * Created at  : 2017-04-07
-* Updated at  : 2019-02-05
+* Updated at  : 2019-02-09
 * Author      : jeefo
 * Purpose     :
 * Description :
@@ -41,7 +41,8 @@ module.exports = class StringStream {
     }
 
 	at (index) {
-		return this.string.charAt(index);
+        const character = this.string.charAt(index);
+		return character === '' ? null : character;
 	}
 
 	substring_from (offset) {
