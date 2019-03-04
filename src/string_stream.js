@@ -1,7 +1,7 @@
 /* -.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.
 * File Name   : string_stream.js
 * Created at  : 2017-04-07
-* Updated at  : 2019-02-09
+* Updated at  : 2019-03-05
 * Author      : jeefo
 * Purpose     :
 * Description :
@@ -67,7 +67,7 @@ module.exports = class StringStream {
 		return current_character || null;
 	}
 
-	move (length) {
+	move_cursor (length) {
 		this.cursor.index          += length;
 		this.cursor.column         += length;
 		this.cursor.virtual_column += length;
