@@ -1,7 +1,7 @@
 /* -.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.
 * File Name   : index.js
 * Created at  : 2017-04-12
-* Updated at  : 2019-01-29
+* Updated at  : 2019-03-05
 * Author      : jeefo
 * Purpose     :
 * Description :
@@ -27,22 +27,6 @@ module.exports = class JeefoTokenizer {
         this.streamer = new StringStream(source_code, tab_space);
     }
 
-    clone () {
-        const clone = new JeefoTokenizer();
-
-        clone.token_definitions = this.token_definitions.map(token_definition => {
-            return new TokenDefinition({
-                is         : token_definition.is,
-                initialize : token_definition.initialize,
-                prototype  : token_definition.Token.prototype
-            });
-        });
-
-        clone.cursor_positions_stack = this.cursor_positions_stack.map(cursor_position => Object.assign({}, cursor_position));
-
-        return clone;
-    }
-
     get_next_token () {
         const current_character = this.streamer.get_next_character(true);
 
@@ -63,7 +47,7 @@ module.exports = class JeefoTokenizer {
 
     register (token_definition) {
         this.token_definitions.push(new TokenDefinition(token_definition));
-        this.token_definitions.sort((a, b) => a.Token.prototype.precedence - b.Token.prototype.precedence);
+        this.token_definitions.sort((a, b) => a.Token.prototype.priority - b.Token.prototype.priority);
 
         return this;
     }
