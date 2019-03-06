@@ -1,7 +1,7 @@
 /* -.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.
 * File Name   : string_stream.js
 * Created at  : 2017-04-07
-* Updated at  : 2019-03-05
+* Updated at  : 2019-03-07
 * Author      : jeefo
 * Purpose     :
 * Description :
@@ -15,7 +15,7 @@ _._._._._._._._._._._._._._._._._._._._._.*/
 //ignore:end
 
 const __update_cursor = (streamer, current_character) => {
-    if (current_character === '\r' || current_character === '\n') {
+    if (current_character === '\n') {
         streamer.cursor.line          += 1;
         streamer.cursor.column         = 0;
         streamer.cursor.virtual_column = 0;
@@ -58,6 +58,11 @@ module.exports = class StringStream {
 
 		if (skip_whitespace) {
 			while (current_character && current_character <= ' ') {
+                if (current_character === '\r') {
+                    this.cursor.column         += 1;
+                    this.cursor.virtual_column += 1;
+                    current_character = this.string.charAt( ++this.cursor.index );
+                }
 				__update_cursor(this, current_character);
 				current_character = this.string.charAt( ++this.cursor.index );
 			}
@@ -67,10 +72,13 @@ module.exports = class StringStream {
 		return current_character || null;
 	}
 
-	move_cursor (length) {
+	move_cursor (length, virtual_length) {
+        if (virtual_length === undefined) {
+            virtual_length = length;
+        }
 		this.cursor.index          += length;
 		this.cursor.column         += length;
-		this.cursor.virtual_column += length;
+		this.cursor.virtual_column += virtual_length;
 	}
 
 	get_current_character () {
