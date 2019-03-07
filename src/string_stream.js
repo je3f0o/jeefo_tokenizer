@@ -58,11 +58,6 @@ module.exports = class StringStream {
 
 		if (skip_whitespace) {
 			while (current_character && current_character <= ' ') {
-                if (current_character === '\r') {
-                    this.cursor.column         += 1;
-                    this.cursor.virtual_column += 1;
-                    current_character = this.string.charAt( ++this.cursor.index );
-                }
 				__update_cursor(this, current_character);
 				current_character = this.string.charAt( ++this.cursor.index );
 			}
