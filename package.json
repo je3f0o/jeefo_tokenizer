@@ -1,9 +1,9 @@
 {
-  "name": "jeefo_tokenizer",
-  "version": "0.0.37",
+  "name": "@jeefo/tokenizer",
+  "version": "0.0.1",
   "homepage": "https://github.com/je3f0o/jeefo_tokenizer",
   "copyright": "2017",
-  "description": "jeefo tokenizer",
+  "description": "JeefoTokenizer library for generating lexical tokens",
   "author": {
     "name": "je3f0o",
     "email": "je3f0o@gmail.com"
