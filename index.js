@@ -1,7 +1,7 @@
 /* -.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.
 * File Name   : index.js
 * Created at  : 2017-04-12
-* Updated at  : 2019-08-05
+* Updated at  : 2019-09-09
 * Author      : jeefo
 * Purpose     :
 * Description :
@@ -21,7 +21,7 @@ class ITokenDefinition {
     constructor () {
         throw new Error("Interface class cannot be instantiated.");
     }
-};
+}
 
 const sort_by_priority = (a, b) => {
     return a.Token.prototype.priority - b.Token.prototype.priority;
