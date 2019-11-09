@@ -1,7 +1,7 @@
 /* -.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.
 * File Name   : index.js
 * Created at  : 2017-04-12
-* Updated at  : 2019-09-09
+* Updated at  : 2019-10-31
 * Author      : jeefo
 * Purpose     :
 * Description :
@@ -14,13 +14,12 @@
 
 //ignore:end
 
-const StringStream    = require("./src/string_stream");
-const TokenDefinition = require("./src/token_definition");
+const Interface       = require("@jeefo/utils/class/interface");
+const StringStream    = require("./string_stream");
+const TokenDefinition = require("./token_definition");
 
-class ITokenDefinition {
-    constructor () {
-        throw new Error("Interface class cannot be instantiated.");
-    }
+class ITokenDefinition extends Interface {
+    constructor () { super(ITokenDefinition); }
 }
 
 const sort_by_priority = (a, b) => {
@@ -59,6 +58,8 @@ class JeefoTokenizer {
     }
 
     register (token_definition) {
+        // TODO: investigate what is this...
+        // is that good idea or bad idea ???
         if (! (token_definition instanceof ITokenDefinition)) {
             // throw Error
         }

@@ -1,26 +1,34 @@
 {
-  "name": "@jeefo/tokenizer",
-  "version": "0.0.2",
-  "homepage": "https://github.com/je3f0o/jeefo_tokenizer",
-  "copyright": "2017",
-  "description": "JeefoTokenizer library for generating lexical tokens",
-  "author": {
-    "name": "je3f0o",
-    "email": "je3f0o@gmail.com"
-  },
-  "license": "MIT",
-  "main": "index.js",
-  "scripts": {},
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/je3f0o/jeefo_tokenizer.git"
-  },
-  "keywords": [
-    "jeefo",
-    "je3f0o",
-    "token",
-    "tokenizer"
-  ],
-  "devDependencies": {},
-  "dependencies": {}
+    "name": "@jeefo/tokenizer",
+    "version": "0.0.4",
+    "homepage": "https://github.com/je3f0o/jeefo_tokenizer",
+    "copyright": "2017",
+    "description": "JeefoTokenizer library for generating lexical tokens",
+    "author": {
+        "name": "je3f0o",
+        "email": "je3f0o@gmail.com"
+    },
+    "license": "MIT",
+    "main": "index.js",
+    "scripts": {
+        "save": "git add . && git c \"`date`\" && git p",
+        "save_version": "git add . && git c \"v$npm_package_version\" && git p",
+        "jeefo_publish": "node node_modules/@jeefo/publish/publish.js"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git@github.com:je3f0o/jeefo_tokenizer.git"
+    },
+    "keywords": [
+        "jeefo",
+        "je3f0o",
+        "token",
+        "tokenizer"
+    ],
+    "devDependencies": {
+        "@jeefo/publish": "0.0.31"
+    },
+    "dependencies": {
+        "@jeefo/utils": "0.0.4"
+    }
 }
