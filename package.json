@@ -1,6 +1,6 @@
 {
     "name": "@jeefo/tokenizer",
-    "version": "0.0.5",
+    "version": "0.0.6",
     "homepage": "https://github.com/je3f0o/jeefo_tokenizer",
     "copyright": "2017",
     "description": "JeefoTokenizer library for generating lexical tokens",
@@ -28,7 +28,5 @@
     "devDependencies": {
         "@jeefo/publish": "0.0.31"
     },
-    "dependencies": {
-        "@jeefo/utils": "0.0.4"
-    }
+    "dependencies": {}
 }
